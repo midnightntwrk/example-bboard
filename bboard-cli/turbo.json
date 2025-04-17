@@ -1,0 +1,22 @@
+{
+  "extends": ["//"],
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["compact"],
+      "outputMode": "new-only",
+      "inputs": ["src/**/*.ts", "src/**/*.mts", "src/**/*.tsx", "!src/**/*.test.ts", "tsconfig.json", "tsconfig.build.json"],
+      "outputs": ["dist/**"]
+    },
+    "lint": {
+      "outputMode": "new-only",
+      "dependsOn": ["compact", "build"]
+    },
+    "test": {
+      "outputMode": "new-only",
+      "dependsOn": ["build", "compact"],
+      "inputs": ["src/**/*.ts", "jest.config.ts", "tsconfig.json", "*.yml", "dist/**/.js"],
+      "outputs": ["reports/**"]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+services:
+  proof-server:
+    image: "midnightnetwork/proof-server:3.0.7"
+    command: ["midnight-proof-server --network undeployed"]
+    ports:
+      - "6300:6300"
+    environment:
+      RUST_BACKTRACE: "full"

@@ -1,0 +1,36 @@
+{
+  "name": "@midnight-ntwrk/bboard-cli",
+  "version": "0.1.0",
+  "author": "IOG",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "testnet-remote": "node --experimental-specifier-resolution=node dist/launcher/testnet-remote.js",
+    "testnet-remote-ps": "node --experimental-specifier-resolution=node dist/launcher/testnet-remote-start-proof-server.js",
+    "testnet-local": "node --experimental-specifier-resolution=node dist/launcher/testnet-local.js",
+    "standalone": "docker compose -f standalone.yml pull && node --experimental-specifier-resolution=node dist/launcher/standalone.js",
+    "prepack": "yarn build",
+    "test": "yarn test-e2e",
+    "test-e2e": "NODE_OPTIONS=--experimental-vm-modules jest  --detectOpenHandles --forceExit",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/bboard-api": "workspace:*",
+    "@midnight-ntwrk/bboard-contract": "workspace:*",
+    "pino": "^8.16.1",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/ws": "^8.5.9",
+    "allure-commandline": "^2.32.0",
+    "allure-jest": "^3.0.5",
+    "allure-js-commons": "^3.0.5",
+    "eslint": "^8.52.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.2.2"
+  }
+}

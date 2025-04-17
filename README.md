@@ -1,7 +1,25 @@
-# Midnight Template Repository
+# Bulletin board contract and DApp
 
-This GitHub repository should be used as a template when createing a new Midnight GitHub reppository.
-The template is configured with default repository settings and a set of default files that are expected to exist in all Midnight GitHub repositories.
+This example implements a simple one-item bulletin board. It allows
+users to post a single message at a time, and only the user who posted
+the message can take it down and make the board vacant again.
+
+The full description of the bulletin board scenario, as well as a
+detailed discussion of the code, can be found in part 3 of the
+Midnight developer tutorial.
+
+The `bboard-tutorial` directory contains a version of the bulletin
+board DApp with some parts missing. The tutorial guides you through
+the process of filling in the missing pieces. If you are reading this
+in the `bboard-tutorial` directory, **do not expect the code to
+compile until after you have completed the tutorial**.
+
+The `bboard` directory contains the solution to the problems posed in
+the tutorial. You can think of it as the answer key to the
+`bboard-tutorial` example. If you are reading this in the `bboard`
+directory, then the code should compile without changes, but do not
+look at it until after you make an effort to complete the exercises by
+following the tutorial.
 
 ### LICENSE
 
@@ -43,7 +61,7 @@ signing process, enabling contributors to sign our CLAs directly within a GitHub
 
 ### Dependabot
 
-The Midnight Foundation uses GitHub Dependabot feature to keep our projects dependencies up-to-date and address potential security vulnerabilities. 
+The Midnight Foundation uses GitHub Dependabot feature to keep our projects dependencies up-to-date and address potential security vulnerabilities.
 
 ### Checkmarx
 
@@ -52,7 +70,7 @@ All repositories are scanned with Checkmarx's suite of tools including: Static A
 
 ### Unito
 
-Facilitates two-way data synchronization, automated workflows and streamline processes between: Jira, GitHub issues and Github project Kanban board. 
+Facilitates two-way data synchronization, automated workflows and streamline processes between: Jira, GitHub issues and Github project Kanban board.
 
 # TODO
 
@@ -74,20 +92,20 @@ Check and adjust:
 2. Repository name in the URL "additional_params: --scs-repo-url https://github.com/midnightntwrk/midnight-template-repo --scs-repo-token ${{ secrets.MIDNIGHTCI_REPO }}".
 
 ### Software Package Data Exchange (SPDX)
+
 Include the following Software Package Data Exchange (SPDX) short-form identifier in a comment at the top headers of each source code file.
 
-
- <I>// This file is part of <B>REPLACE WITH REPO-NAME</B>.<BR>
- // Copyright (C) 2025 Midnight Foundation<BR>
- // SPDX-License-Identifier: Apache-2.0<BR>
- // Licensed under the Apache License, Version 2.0 (the "License");<BR>
- // You may not use this file except in compliance with the License.<BR>
- // You may obtain a copy of the License at<BR>
- //<BR>
- //	http://www.apache.org/licenses/LICENSE-2.0<BR>
- //<BR>
- // Unless required by applicable law or agreed to in writing, software<BR>
- // distributed under the License is distributed on an "AS IS" BASIS,<BR>
- // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<BR>
- // See the License for the specific language governing permissions and<BR>
- // limitations under the License.</I>
+<I>// This file is part of <B>REPLACE WITH REPO-NAME</B>.<BR>
+// Copyright (C) 2025 Midnight Foundation<BR>
+// SPDX-License-Identifier: Apache-2.0<BR>
+// Licensed under the Apache License, Version 2.0 (the "License");<BR>
+// You may not use this file except in compliance with the License.<BR>
+// You may obtain a copy of the License at<BR>
+//<BR>
+// http://www.apache.org/licenses/LICENSE-2.0<BR>
+//<BR>
+// Unless required by applicable law or agreed to in writing, software<BR>
+// distributed under the License is distributed on an "AS IS" BASIS,<BR>
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<BR>
+// See the License for the specific language governing permissions and<BR>
+// limitations under the License.</I>
