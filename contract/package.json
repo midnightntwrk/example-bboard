@@ -13,17 +13,19 @@
     }
   },
   "scripts": {
-    "compact": "run-compactc src/bboard.compact ./src/managed/bboard",
+    "compact": "compactc src/bboard.compact ./src/managed/bboard",
     "test": "jest --passWithNoTests",
-    "prepack": "yarn build",
+    "prepack": "npm build",
     "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./src/managed ./dist/managed && cp ./src/bboard.compact ./dist",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@midnight-ntwrk/compact": "workspace:*",
-    "eslint": "^8.52.0",
+    "eslint": "^9.25.1",
     "jest": "^29.7.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "^0.7.0"
   }
 }

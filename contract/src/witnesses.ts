@@ -3,8 +3,8 @@
  * as well as the single witness function that accesses it.
  */
 
-import { Ledger } from './managed/bboard/contract/index.cjs';
-import { WitnessContext } from '@midnight-ntwrk/compact-runtime';
+import { Ledger } from "./managed/bboard/contract/index.cjs";
+import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
 
 /* **********************************************************************
  * The only hidden state needed by the bulletin board contract is
@@ -15,13 +15,11 @@ import { WitnessContext } from '@midnight-ntwrk/compact-runtime';
  */
 
 export type BBoardPrivateState = {
-  // EXERCISE 1a: FILL IN A REPRESENTATION OF THE PRIVATE STATE
-  readonly secretKey: Uint8Array; // EXERCISE ANSWER
+  readonly secretKey: Uint8Array;
 };
 
 export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
-  // EXERCISE 1b: INITIALIZE THE OBJECT OF TYPE BBoardPrivateState
-  secretKey, // EXERCISE ANSWER
+  secretKey
 });
 
 /* **********************************************************************
@@ -52,9 +50,10 @@ export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
  * only the binding for the privateState in scope.
  */
 export const witnesses = {
-  local_secret_key: ({ privateState }: WitnessContext<Ledger, BBoardPrivateState>): [BBoardPrivateState, Uint8Array] => [
-    // EXERCISE 2: WHAT ARE THE CORRECT TWO VALUES TO RETURN HERE?
-    privateState, // EXERCISE ANSWER
-    privateState.secretKey, // EXERCISE ANSWER
-  ],
+  local_secret_key: ({
+    privateState
+  }: WitnessContext<Ledger, BBoardPrivateState>): [
+    BBoardPrivateState,
+    Uint8Array
+  ] => [privateState, privateState.secretKey]
 };
