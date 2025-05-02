@@ -6,10 +6,12 @@
  * of the servers this file relies on.
  */
 
+// Wallet seed: 8dd96c613b92a1ced03ac5e71a039d4447cfe84928864fc38260b28cd30378c2
+
 import { createInterface, type Interface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { WebSocket } from 'ws';
-import { webcrypto } from 'crypto';
+// import { webcrypto } from 'crypto';
 import {
   type BBoardProviders,
   BBoardAPI,
@@ -18,8 +20,8 @@ import {
   type DeployedBBoardContract,
   type PrivateStateId,
   bboardPrivateStateKey,
-} from '@midnight-ntwrk/bboard-api';
-import { ledger, type Ledger, STATE } from '@midnight-ntwrk/bboard-contract';
+} from '../../api/src/index';
+import { ledger, type Ledger, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
 import {
   type BalancedTransaction,
   createBalancedTx,
@@ -29,6 +31,7 @@ import {
 } from '@midnight-ntwrk/midnight-js-types';
 import { type Wallet } from '@midnight-ntwrk/wallet-api';
 import * as Rx from 'rxjs';
+import * as crypto from 'crypto';
 import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
 import { Transaction as ZswapTransaction } from '@midnight-ntwrk/zswap';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
@@ -40,11 +43,8 @@ import { type Config, StandaloneConfig } from './config.js';
 import type { StartedDockerComposeEnvironment, DockerComposeEnvironment } from 'testcontainers';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { toHex } from '@midnight-ntwrk/midnight-js-utils';
+import { toHex, assertIsContractAddress } from '@midnight-ntwrk/midnight-js-utils';
 import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
-
-// @ts-expect-error: It's needed to make Scala.js and WASM code able to use cryptography
-globalThis.crypto = webcrypto;
 
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
@@ -58,13 +58,17 @@ globalThis.WebSocket = WebSocket;
  * in the bulletin board contract.
  */
 
-export const getBBoardLedgerState = (
+export const getBBoardLedgerState = async (
   providers: BBoardProviders,
   contractAddress: ContractAddress,
-): Promise<Ledger | null> =>
-  providers.publicDataProvider
-    .queryContractState(contractAddress)
-    .then((contractState) => (contractState != null ? ledger(contractState.data) : null));
+): Promise<Ledger | null> => {
+  assertIsContractAddress(contractAddress);
+  const contractState = await providers.publicDataProvider.queryContractState(contractAddress);
+  return contractState != null ? ledger(contractState.data) : null;
+};
+// providers.publicDataProvider
+//   .queryContractState(contractAddress)
+//   .then((contractState) => (contractState != null ? ledger(contractState.data) : null));
 
 /* **********************************************************************
  * deployOrJoin: returns a contract, by prompting the user about

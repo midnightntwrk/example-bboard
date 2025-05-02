@@ -21,6 +21,12 @@ directory, then the code should compile without changes, but do not
 look at it until after you make an effort to complete the exercises by
 following the tutorial.
 
+## How to use
+
+1- Install node modules in `api`
+2- Install node modules in `bboard-cli`
+3- Compile contract in `contract`
+
 ### LICENSE
 
 Apache 2.0.

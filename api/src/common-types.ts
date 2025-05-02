@@ -6,7 +6,7 @@
 
 import { type MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import { type FoundContract } from '@midnight-ntwrk/midnight-js-contracts';
-import type { STATE, BBoardPrivateState, Contract, Witnesses } from '@midnight-ntwrk/bboard-contract';
+import type { STATE, BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index';
 
 export const bboardPrivateStateKey = 'bboardPrivateState';
 export type PrivateStateId = typeof bboardPrivateStateKey;

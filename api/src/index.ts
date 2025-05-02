@@ -13,15 +13,8 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-import {
-  type BBoardPrivateState,
-  Contract,
-  createBBoardPrivateState,
-  ledger,
-  pureCircuits,
-  witnesses,
-  STATE,
-} from '@midnight-ntwrk/bboard-contract';
+import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
+import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index.js';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
@@ -128,10 +121,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async post(message: string): Promise<void> {
     this.logger?.info(`postingMessage: ${message}`);
 
-    const txData =
-      // EXERCISE 3: CALL THE post CIRCUIT AND SUBMIT THE TRANSACTION TO THE NETWORK
-      await this.deployedContract.callTx // EXERCISE ANSWER
-        .post(message); // EXERCISE ANSWER
+    const txData = await this.deployedContract.callTx.post(message);
 
     this.logger?.trace({
       transactionAdded: {
@@ -153,10 +143,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async takeDown(): Promise<void> {
     this.logger?.info('takingDownMessage');
 
-    const txData =
-      // EXERCISE 4: CALL THE take_down CIRCUIT AND SUBMIT THE TRANSACTION TO THE NETWORK
-      await this.deployedContract.callTx // EXERCISE ANSWER
-        .take_down(); // EXERCISE ANSWER
+    const txData = await this.deployedContract.callTx.take_down();
 
     this.logger?.trace({
       transactionAdded: {
