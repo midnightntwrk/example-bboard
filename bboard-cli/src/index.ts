@@ -234,6 +234,7 @@ const createWalletAndMidnightProvider = async (wallet: Wallet): Promise<WalletPr
   const state = await Rx.firstValueFrom(wallet.state());
   return {
     coinPublicKey: state.coinPublicKey,
+    encryptionPublicKey: state.encryptionPublicKey,
     balanceTx(tx: UnbalancedTransaction, newCoins: CoinInfo[]): Promise<BalancedTransaction> {
       return wallet
         .balanceTransaction(
@@ -265,13 +266,13 @@ const waitForFunds = (wallet: Wallet, logger: Logger) =>
       Rx.throttleTime(10_000),
       Rx.tap((state) => {
         const scanned = state.syncProgress?.synced ?? 0n;
-        const total = state.syncProgress?.total.toString() ?? 'unknown number';
-        logger.info(`Wallet processed ${scanned} indices out of ${total}`);
+        const behind = state.syncProgress?.lag.applyGap.toString() ?? 'unknown number';
+        logger.info(`Wallet processed ${scanned} indices, remaining ${behind}`);
       }),
       Rx.filter((state) => {
         // Let's allow progress only if wallet is close enough
-        const synced = state.syncProgress?.synced ?? 0n;
-        const total = state.syncProgress?.total ?? 1_000n;
+        const synced = typeof state.syncProgress?.synced === 'bigint' ? state.syncProgress.synced : 0n;
+        const total = typeof state.syncProgress?.lag?.applyGap === 'bigint' ? state.syncProgress.lag.applyGap : 1_000n;
         return total - synced < 100n;
       }),
       Rx.map((s) => s.balances[nativeToken()] ?? 0n),

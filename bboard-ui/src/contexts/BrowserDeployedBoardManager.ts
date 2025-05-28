@@ -1,4 +1,4 @@
-import { type DeployedBBoardAPI, BBoardAPI, type BBoardProviders } from '@midnight-ntwrk/bboard-api';
+import { type DeployedBBoardAPI, BBoardAPI, type BBoardProviders } from '../../../api/src/index';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import {
   BehaviorSubject,
@@ -23,7 +23,7 @@ import {
   type ServiceUriConfig,
 } from '@midnight-ntwrk/dapp-connector-api';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
-import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
+import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import {
@@ -207,7 +207,7 @@ const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => 
     privateStateProvider: levelPrivateStateProvider({
       privateStateStoreName: 'bboard-private-state',
     }),
-    zkConfigProvider: new FetchZkConfigProvider(window.location.origin, fetch.bind(window)),
+    zkConfigProvider: new NodeZkConfigProvider(),
     proofProvider: httpClientProofProvider(uris.proverServerUri),
     publicDataProvider: indexerPublicDataProvider(uris.indexerUri, uris.indexerWsUri),
     walletProvider: {

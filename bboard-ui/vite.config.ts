@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteCommonjs } from '@originjs/vite-plugin-commonjs';
+import wasm from 'vite-plugin-wasm';
+import topLevelAwait from 'vite-plugin-top-level-await';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -9,7 +11,7 @@ export default defineConfig({
     target: 'esnext',
     minify: false,
   },
-  plugins: [react(), viteCommonjs()],
+  plugins: [react(), viteCommonjs(), topLevelAwait(), wasm()],
   optimizeDeps: {
     esbuildOptions: {
       target: 'esnext',
