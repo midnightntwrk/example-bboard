@@ -11,8 +11,7 @@
     "prepack": "yarn build",
     "build": "tsc && vite build --mode testnet && cp -r ../contract/dist/managed/bboard/keys ./dist/keys && cp -r ../contract/dist/managed/bboard/zkir ./dist/zkir",
     "preview": "vite preview",
-    "lint": "eslint ./src",
-    "test": "jest --passWithNoTests"
+    "lint": "eslint ./src"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -21,12 +20,12 @@
     "@mui/material": "^7.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "7.6.0"
+    "react-router-dom": "7.6.1"
   },
   "devDependencies": {
-    "@types/react": "^19.1.4",
+    "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
-    "@vitejs/plugin-react": "^4.4.1",
+    "@vitejs/plugin-react": "^4.5.0",
     "eslint-plugin-react": "^7.37.5"
   }
 }

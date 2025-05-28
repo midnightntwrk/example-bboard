@@ -4,6 +4,9 @@
  * @packageDocumentation
  */
 
+import contractModule from '../../contract/src/managed/bboard/contract/index.cjs';
+const { Contract, ledger, pureCircuits, STATE } = contractModule;
+
 import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
 import {
@@ -13,7 +16,7 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
+// import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
 import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index.js';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -121,7 +124,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async post(message: string): Promise<void> {
     this.logger?.info(`postingMessage: ${message}`);
 
-    const txData = await this.deployedContract.callTx.post(message);
+    const txData = await (this.deployedContract.callTx.post as (message: string) => Promise<any>)(message);
 
     this.logger?.trace({
       transactionAdded: {
@@ -143,7 +146,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async takeDown(): Promise<void> {
     this.logger?.info('takingDownMessage');
 
-    const txData = await this.deployedContract.callTx.take_down();
+    const txData = await (this.deployedContract.callTx.take_down as () => Promise<any>)();
 
     this.logger?.trace({
       transactionAdded: {
@@ -166,7 +169,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
     logger?.info('deployContract');
 
     // EXERCISE 5: FILL IN THE CORRECT ARGUMENTS TO deployContract
-    const deployedBBoardContract = await deployContract<BBoardContract>(providers, {
+    const deployedBBoardContract = await deployContract<typeof bboardContractInstance>(providers, {
       privateStateId: bboardPrivateStateKey,
       contract: bboardContractInstance,
       initialPrivateState: await BBoardAPI.getPrivateState(providers),
