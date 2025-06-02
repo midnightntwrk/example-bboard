@@ -6,6 +6,7 @@
 
 import contractModule from '../../contract/src/managed/bboard/contract/index.cjs';
 const { Contract, ledger, pureCircuits, STATE } = contractModule;
+// import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/index';
 
 import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
@@ -17,7 +18,7 @@ import {
   bboardPrivateStateKey,
 } from './common-types.js';
 // import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
-import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index.js';
+import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
