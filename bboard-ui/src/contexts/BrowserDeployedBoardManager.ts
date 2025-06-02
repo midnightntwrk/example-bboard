@@ -1,4 +1,9 @@
-import { type DeployedBBoardAPI, BBoardAPI, type BBoardProviders } from '../../../api/src/index';
+import {
+  type DeployedBBoardAPI,
+  BBoardAPI,
+  type BBoardProviders,
+  type BBoardCircuitKeys,
+} from '../../../api/src/index';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import {
   BehaviorSubject,
@@ -23,7 +28,8 @@ import {
   type ServiceUriConfig,
 } from '@midnight-ntwrk/dapp-connector-api';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
-import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
+// import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
+import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import {
@@ -202,23 +208,24 @@ export class BrowserDeployedBoardManager implements DeployedBoardAPIProvider {
 const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => {
   const { wallet, uris } = await connectToWallet(logger);
   const walletState = await wallet.state();
+  const zkConfigPath = window.location.origin; // '../../../contract/src/managed/bboard';
 
   return {
     privateStateProvider: levelPrivateStateProvider({
       privateStateStoreName: 'bboard-private-state',
     }),
-    zkConfigProvider: new NodeZkConfigProvider(),
+    zkConfigProvider: new FetchZkConfigProvider<BBoardCircuitKeys>(zkConfigPath, fetch.bind(window)),
     proofProvider: httpClientProofProvider(uris.proverServerUri),
     publicDataProvider: indexerPublicDataProvider(uris.indexerUri, uris.indexerWsUri),
     walletProvider: {
       coinPublicKey: walletState.coinPublicKey,
+      encryptionPublicKey: walletState.encryptionPublicKey,
       balanceTx(tx: UnbalancedTransaction, newCoins: CoinInfo[]): Promise<BalancedTransaction> {
         return wallet
-          .balanceTransaction(
+          .balanceAndProveTransaction(
             ZswapTransaction.deserialize(tx.serialize(getLedgerNetworkId()), getZswapNetworkId()),
             newCoins,
           )
-          .then((tx) => wallet.proveTransaction(tx))
           .then((zswapTx) => Transaction.deserialize(zswapTx.serialize(getZswapNetworkId()), getLedgerNetworkId()))
           .then(createBalancedTx);
       },
