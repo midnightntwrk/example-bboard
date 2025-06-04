@@ -1,11 +1,11 @@
 services:
   proof-server:
     container_name: 'bboard-api-proof-server'
-    image: 'midnightnetwork/proof-server:3.0.7'
+    image: 'midnightnetwork/proof-server:4.0.0'
     ports:
-      - "6300"
+      - '6300'
     environment:
-      RUST_BACKTRACE: "full"
+      RUST_BACKTRACE: 'full'
   indexer:
     container_name: 'bboard-api-indexer'
     image: 'midnightnetwork/midnight-pubsub-indexer:2.3.0'
@@ -27,16 +27,16 @@ services:
       node:
         condition: service_started
   node:
-    image: 'midnightnetwork/midnight-node:0.8.0'
+    image: 'midnightnetwork/midnight-node:0.12.0'
     platform: linux/amd64
     container_name: 'bboard-api-node'
     ports:
-      - "9944"
+      - '9944'
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9944/health" ]
+      test: ['CMD', 'curl', '-f', 'http://localhost:9944/health']
       interval: 2s
       timeout: 5s
       retries: 5
       start_period: 40s
     environment:
-      CFG_PRESET: "dev"
+      CFG_PRESET: 'dev'

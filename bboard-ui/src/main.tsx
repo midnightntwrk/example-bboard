@@ -9,7 +9,7 @@ import './globals';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '@mui/material';
-import { setNetworkId, type NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { setNetworkId, NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import App from './App';
 import CssBaseline from '@mui/material/CssBaseline';
 import { theme } from './config/theme';
@@ -18,6 +18,7 @@ import * as pino from 'pino';
 import { DeployedBoardProvider } from './contexts';
 
 const networkId = import.meta.env.VITE_NETWORK_ID as NetworkId;
+// contract address: 0200dbf964f541e1950883f5b2f539b66fd6111e46ce8e6e9551fbdd180114d5dd5b
 // Ensure that the network IDs are set within the Midnight libraries.
 setNetworkId(networkId);
 

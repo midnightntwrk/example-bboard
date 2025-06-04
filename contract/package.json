@@ -14,7 +14,7 @@
   },
   "scripts": {
     "compact": "compactc src/bboard.compact ./src/managed/bboard",
-    "test": "jest --passWithNoTests",
+    "test": "vitest",
     "prepack": "npm build",
     "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./src/managed ./dist/managed && cp ./src/bboard.compact ./dist",
     "lint": "eslint src",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "eslint": "^9.25.1",
-    "jest": "^29.7.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
   }
 }

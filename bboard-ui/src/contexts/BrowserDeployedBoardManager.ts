@@ -210,6 +210,8 @@ const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => 
   const walletState = await wallet.state();
   const zkConfigPath = window.location.origin; // '../../../contract/src/managed/bboard';
 
+  console.log(`Connecting to wallet with network ID: ${getLedgerNetworkId()}`);
+
   return {
     privateStateProvider: levelPrivateStateProvider({
       privateStateStoreName: 'bboard-private-state',
