@@ -1,15 +1,43 @@
-# Midnight Template Repository
+# Bulletin board contract and DApp
 
-This GitHub repository should be used as a template when createing a new Midnight GitHub reppository.
-The template is configured with default repository settings and a set of default files that are expected to exist in all Midnight GitHub repositories.
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)  
+[![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
+
+This example implements a simple one-item bulletin board. It allows
+users to post a single message at a time, and only the user who posted
+the message can take it down and make the board vacant again.
+
+The full description of the bulletin board scenario, as well as a
+detailed discussion of the code, can be found in part 3 of the
+Midnight developer tutorial.
+
+The `api` directory contains different methods, classes and types required to run the bboard CLI and the bboard UI.
+
+The `contract` directory contains the Compact contract and its utilities.
+
+The `bboard-cli` directory contains the code required to run the bboard dapp as a CLI app.
+
+The `bboard-ui` directory contains the code needed to build the interface and interact with it in the browser.
+The interface allows the user to deploy a new bboard contract, post a new message and take it down.
+
+## How to use the CLI
+
+1- Install the node modules in the root
+2- Install the node modules in `api`
+3- Install the node modules in `contract` and compile it
+4- Install the node modules in `bboard-cli`, build it and run `npm run testnet-remote` to launch the app
+
+## How to use the user interface
+
+1- Install the node modules in the root
+2- Install the node modules in `api`
+3- Install the node modules in `contract` and compile it
+4- Install the node modules in `bboard-ui`
+5- Run `npm run build:start` to build the project and run a local server
 
 ### LICENSE
 
 Apache 2.0.
-
-### README.md
-
-Provides a brief description for users and developers who want to understand the purpose, setup, and usage of the repository.
 
 ### SECURITY.md
 
@@ -43,7 +71,7 @@ signing process, enabling contributors to sign our CLAs directly within a GitHub
 
 ### Dependabot
 
-The Midnight Foundation uses GitHub Dependabot feature to keep our projects dependencies up-to-date and address potential security vulnerabilities. 
+The Midnight Foundation uses GitHub Dependabot feature to keep our projects dependencies up-to-date and address potential security vulnerabilities.
 
 ### Checkmarx
 
@@ -52,42 +80,4 @@ All repositories are scanned with Checkmarx's suite of tools including: Static A
 
 ### Unito
 
-Facilitates two-way data synchronization, automated workflows and streamline processes between: Jira, GitHub issues and Github project Kanban board. 
-
-# TODO
-
-After copying the repository template owners should review and change the following:
-
-### CODEOWNERS
-
-Change code owners accordingly.
-
-### dependabot.yaml
-
-Check and adjust according to repo needs, a few samples provided in the file.
-
-### checkmarx.yaml
-
-Check and adjust:
-
-1. Default branch name (not requiered if default branch name is 'main').
-2. Repository name in the URL "additional_params: --scs-repo-url https://github.com/midnightntwrk/midnight-template-repo --scs-repo-token ${{ secrets.MIDNIGHTCI_REPO }}".
-
-### Software Package Data Exchange (SPDX)
-Include the following Software Package Data Exchange (SPDX) short-form identifier in a comment at the top headers of each source code file.
-
-
- <I>// This file is part of <B>REPLACE WITH REPO-NAME</B>.<BR>
- // Copyright (C) 2025 Midnight Foundation<BR>
- // SPDX-License-Identifier: Apache-2.0<BR>
- // Licensed under the Apache License, Version 2.0 (the "License");<BR>
- // You may not use this file except in compliance with the License.<BR>
- // You may obtain a copy of the License at<BR>
- //<BR>
- //	http://www.apache.org/licenses/LICENSE-2.0<BR>
- //<BR>
- // Unless required by applicable law or agreed to in writing, software<BR>
- // distributed under the License is distributed on an "AS IS" BASIS,<BR>
- // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<BR>
- // See the License for the specific language governing permissions and<BR>
- // limitations under the License.</I>
+Facilitates two-way data synchronization, automated workflows and streamline processes between: Jira, GitHub issues and Github project Kanban board.

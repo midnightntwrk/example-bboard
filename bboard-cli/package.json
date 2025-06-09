@@ -1,0 +1,19 @@
+{
+  "name": "@midnight-ntwrk/bboard-cli",
+  "version": "0.1.0",
+  "author": "IOG",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "testnet-remote": "node --experimental-specifier-resolution=node --loader ts-node/esm src/launcher/testnet-remote.ts",
+    "testnet-remote-ps": "node --experimental-specifier-resolution=node dist/launcher/testnet-remote-start-proof-server.js",
+    "testnet-local": "node --experimental-specifier-resolution=node dist/launcher/testnet-local.js",
+    "standalone": "docker compose -f standalone.yml pull && node --experimental-specifier-resolution=node dist/launcher/standalone.js",
+    "prepack": "yarn build",
+    "test": "vitest",
+    "test-e2e": "NODE_OPTIONS=--experimental-vm-modules jest  --detectOpenHandles --forceExit",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -R ../contract/src/managed dist/contract/src/managed",
+    "lint": "eslint src"
+  }
+}

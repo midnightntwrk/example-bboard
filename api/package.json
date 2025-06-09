@@ -1,0 +1,17 @@
+{
+  "name": "@midnight-ntwrk/bboard-api",
+  "version": "0.1.0",
+  "author": "IOG",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "module": "./dist/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "yarn test-api",
+    "test-api": "DEBUG='testcontainers' NODE_OPTIONS=--experimental-vm-modules jest  --detectOpenHandles --forceExit",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json",
+    "lint": "eslint src"
+  }
+}

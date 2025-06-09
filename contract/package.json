@@ -1,0 +1,28 @@
+{
+  "name": "@midnight-ntwrk/bboard-contract",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "compact": "compactc src/bboard.compact ./src/managed/bboard",
+    "test": "vitest",
+    "prepack": "npm build",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./src/managed ./dist/managed && cp ./src/bboard.compact ./dist",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
+  }
+}
