@@ -417,7 +417,7 @@ export const run = async (config: Config, logger: Logger, dockerEnv?: DockerComp
           privateStateStoreName: config.privateStateStoreName,
         }),
         publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
-        zkConfigProvider: new NodeZkConfigProvider<'post' | 'take_down'>(config.zkConfigPath),
+        zkConfigProvider: new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath),
         proofProvider: httpClientProofProvider(config.proofServer),
         walletProvider: walletAndMidnightProvider,
         midnightProvider: walletAndMidnightProvider,

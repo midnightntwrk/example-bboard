@@ -162,11 +162,11 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async takeDown(): Promise<void> {
     this.logger?.info('takingDownMessage');
 
-    const txData = await (this.deployedContract.callTx.take_down as () => Promise<any>)();
+    const txData = await (this.deployedContract.callTx.takeDown as () => Promise<any>)();
 
     this.logger?.trace({
       transactionAdded: {
-        circuit: 'take_down',
+        circuit: 'takeDown',
         txHash: txData.public.txHash,
         blockHeight: txData.public.blockHeight,
       },
