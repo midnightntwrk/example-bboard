@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version 0.15;
+// Deployed contract example: 02008340669a88d88c9897d92d4661692710c4fe01ef038d0fdc97f1c3027df47c89
+
+pragma language_version 0.16;
 
 import CompactStandardLibrary;
 
@@ -33,18 +35,15 @@ constructor() {
 witness local_secret_key(): Bytes<32>;
 
 export circuit post(new_message: Opaque<"string">): [] {
-    assert state == STATE.vacant
-        "Attempted to post to an occupied board";
+    assert (state == STATE.vacant, "Attempted to post to an occupied board");
     poster = disclose(public_key(local_secret_key(), instance as Field as Bytes<32>));
-    message = some<Opaque<"string">>(new_message);
+    message = disclose(some<Opaque<"string">>(new_message));
     state = STATE.occupied;
 }
 
 export circuit take_down(): Opaque<"string"> {
-    assert state == STATE.occupied
-        "Attempted to take down post from an empty board";
-    assert poster == public_key(local_secret_key(), instance as Field as Bytes<32>)
-        "Attempted to take down post, but not the current poster";
+    assert (state == STATE.occupied, "Attempted to take down post from an empty board");
+    assert (poster == public_key(local_secret_key(), instance as Field as Bytes<32>), "Attempted to take down post, but not the current poster");
     const former_msg = message.value;
     state = STATE.vacant;
     instance.increment(1);
@@ -53,5 +52,5 @@ export circuit take_down(): Opaque<"string"> {
 }
 
 export circuit public_key(sk: Bytes<32>, instance: Bytes<32>): Bytes<32> {
-    return persistent_hash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), instance, sk]);
+    return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), instance, sk]);
 }
