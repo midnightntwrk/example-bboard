@@ -34,7 +34,7 @@ export type BBoardPrivateState = {
 };
 
 export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
-  secretKey
+  secretKey,
 });
 
 /* **********************************************************************
@@ -66,9 +66,9 @@ export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
  */
 export const witnesses = {
   localSecretKey: ({
-    privateState
+    privateState,
   }: WitnessContext<Ledger, BBoardPrivateState>): [
     BBoardPrivateState,
-    Uint8Array
-  ] => [privateState, privateState.secretKey]
+    Uint8Array,
+  ] => [privateState, privateState.secretKey],
 };
