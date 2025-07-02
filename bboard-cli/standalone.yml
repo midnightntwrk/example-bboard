@@ -3,9 +3,9 @@ services:
     container_name: 'bboard-proof-server'
     image: 'midnightnetwork/proof-server:3.0.7'
     ports:
-      - "6300"
+      - '6300'
     environment:
-      RUST_BACKTRACE: "full"
+      RUST_BACKTRACE: 'full'
   indexer:
     container_name: 'bboard-indexer'
     image: 'midnightnetwork/midnight-pubsub-indexer:2.3.0'
@@ -15,7 +15,7 @@ services:
     command: ['-Dlogback.configurationFile=logback-json-file.xml']
     environment:
       LOG_LEVEL: 'TRACE'
-      LEDGER_NETWORK_ID: 'Undeployed'
+      LEDGER_NETWORK_ID: 'TestNet'
       SUBSTRATE_NODE_WS_URL: 'ws://node:9944'
       OTEL_JAVAAGENT_ENABLED: 'false'
     healthcheck:
@@ -31,12 +31,12 @@ services:
     platform: linux/amd64
     container_name: 'bboard-node'
     ports:
-      - "9944"
+      - '9944'
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9944/health" ]
+      test: ['CMD', 'curl', '-f', 'http://localhost:9944/health']
       interval: 2s
       timeout: 5s
       retries: 5
       start_period: 40s
     environment:
-      CFG_PRESET: "dev"
+      CFG_PRESET: 'dev'
