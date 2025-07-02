@@ -103,7 +103,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
       ],
       // ...and combine them to produce the required derived state.
       (ledgerState, privateState) => {
-        const hashedSecretKey = pureCircuits.public_key(
+        const hashedSecretKey = pureCircuits.publicKey(
           privateState.secretKey,
           convert_bigint_to_Uint8Array(32, ledgerState.instance),
         );

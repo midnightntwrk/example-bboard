@@ -15,7 +15,7 @@ services:
     command: ['-Dlogback.configurationFile=logback-json-file.xml']
     environment:
       LOG_LEVEL: 'TRACE'
-      LEDGER_NETWORK_ID: 'Undeployed'
+      LEDGER_NETWORK_ID: 'TestNet'
       SUBSTRATE_NODE_WS_URL: 'ws://node:9944'
       OTEL_JAVAAGENT_ENABLED: 'false'
     healthcheck:
