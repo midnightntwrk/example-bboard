@@ -32,7 +32,6 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/semver": "^7.7.0",
     "@types/ws": "^8.18.1",
     "eslint": "^9.30.0",
