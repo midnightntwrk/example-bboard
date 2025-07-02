@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   install-and-test:
@@ -44,6 +44,7 @@ jobs:
           npm run typecheck
           npm run lint
           npm run build
+          npm run test
 
       - name: api
         working-directory: api
