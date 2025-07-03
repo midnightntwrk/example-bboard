@@ -58,6 +58,7 @@ jobs:
           # npm run lint
           npm run typecheck
           npm run build
+          npm install vitest
           npm run test
 
       - name: Compile bboard-ui
