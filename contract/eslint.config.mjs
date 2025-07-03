@@ -1,52 +1,48 @@
-import { defineConfig, globalIgnores } from "eslint/config";
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
+import reactPlugin from "eslint-plugin-react";
+import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import globals from "globals";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
-});
-
-export default defineConfig([globalIgnores(["src/managed"]), {
-    extends: compat.extends(
-        "plugin:prettier/recommended",
-        "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    ),
-
+const config = tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  reactPlugin.configs.flat.recommended,
+  eslintPluginPrettierRecommended,
+  {
+    ignores: ["src/managed"],
+    rules: {
+      "@typescript-eslint/no-misused-promises": "off", // https://github.com/typescript-eslint/typescript-eslint/issues/5807
+      "@typescript-eslint/no-floating-promises": "warn",
+      "@typescript-eslint/promise-function-async": "off",
+      "@typescript-eslint/no-redeclare": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-unsafe-call": "warn",
+      "@typescript-eslint/no-unsafe-return": "warn",
+      "@typescript-eslint/no-unsafe-assignment": "warn",
+      "@typescript-eslint/no-unsafe-member-access": "warn",
+      "@typescript-eslint/no-unsafe-argument": "warn",
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     languageOptions: {
-        globals: {
-            ...globals.browser,
-            ...globals.node,
-            ...globals.jest,
-        },
-
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.jest,
+      },
+      parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
-
-        parserOptions: {
-            project: ["tsconfig.json"],
-        },
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
+  }
+);
 
-    rules: {
-        "@typescript-eslint/no-misused-promises": "off",
-        "@typescript-eslint/no-floating-promises": "warn",
-        "@typescript-eslint/promise-function-async": "off",
-        "@typescript-eslint/no-redeclare": "off",
-        "@typescript-eslint/no-unsafe-assignment": "off",
-        "@typescript-eslint/no-unsafe-call": "off",
-        "@typescript-eslint/no-unsafe-member-access": "off",
-        "@typescript-eslint/no-unsafe-argument": "off",
-
-        "@typescript-eslint/ban-ts-comment": ["error", {
-            "ts-expect-error": "allow-with-description",
-            "ts-ignore": "allow-with-description",
-        }],
-    },
-}]);
+export default config;
