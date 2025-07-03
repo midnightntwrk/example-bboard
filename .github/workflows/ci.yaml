@@ -61,6 +61,7 @@ jobs:
       - name: Compile bboard-ui
         working-directory: bboard-ui
         run: |
+          npm ci
           # npm run lint
           npm run build
           # npm run typecheck
