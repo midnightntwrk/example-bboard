@@ -12,17 +12,10 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "useDefineForClassFields": true,
-    "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ESNext"
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "esModuleInterop": false,
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": [
-    "src",
-    ".eslintrc.cjs"
-  ],
+  "include": ["src", "eslint.config.mjs"]
 }
