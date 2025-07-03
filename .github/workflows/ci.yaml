@@ -58,9 +58,9 @@ jobs:
           npm run build
           # npm run test
 
-      # - name: Compile bboard-ui
-      #   working-directory: bboard-ui
-      #   run: |
-      #     # npm run lint
-      #     # npm run build
-      #     npm run typecheck
+      - name: Compile bboard-ui
+        working-directory: bboard-ui
+        run: |
+          # npm run lint
+          npm run build
+          # npm run typecheck
