@@ -22,6 +22,8 @@ The interface allows the user to deploy a new bboard contract, post a new messag
 
 ## How to use the CLI
 
+Note: if installing via npm, you need to pass `--legacy-peer-deps` because of the more modern use of vite.
+
 1- Install the node modules in the root
 2- Install the node modules in `api`
 3- Install the node modules in `contract`, compile the contract with `npm run compact`, and then the typescript with `npm run build`
