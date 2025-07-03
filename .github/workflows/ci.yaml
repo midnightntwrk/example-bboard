@@ -48,15 +48,17 @@ jobs:
       - name: api
         working-directory: api
         run: |
+          npm ci
           npm run build
 
       - name: Compile bboard-cli
         working-directory: bboard-cli
         run: |
+          npm ci
           # npm run lint
           npm run typecheck
           npm run build
-          # npm run test
+          npm run test
 
       - name: Compile bboard-ui
         working-directory: bboard-ui
