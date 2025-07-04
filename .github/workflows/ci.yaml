@@ -34,7 +34,7 @@ jobs:
 
       - name: Install api dependencies
         working-directory: api
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Compile and test contract
         working-directory: contract
