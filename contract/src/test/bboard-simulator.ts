@@ -18,7 +18,6 @@ import {
   QueryContext,
   sampleContractAddress,
   constructorContext,
-  bigIntToValue,
   convert_bigint_to_Uint8Array,
 } from "@midnight-ntwrk/compact-runtime";
 import {
@@ -27,7 +26,6 @@ import {
   ledger,
 } from "../managed/bboard/contract/index.cjs";
 import { type BBoardPrivateState, witnesses } from "../witnesses.js";
-import { randomBytes } from "./utils.js";
 
 /**
  * Serves as a testbed to exercise the contract in tests
