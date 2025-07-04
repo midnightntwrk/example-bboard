@@ -5,6 +5,9 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import globals from "globals";
 
 const config = tseslint.config(
+  {
+    ignores: "src/managed/",
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   reactPlugin.configs.flat.recommended,
@@ -42,7 +45,7 @@ const config = tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-  }
+  },
 );
 
 export default config;
