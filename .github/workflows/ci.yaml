@@ -32,14 +32,9 @@ jobs:
           rm ./compactc_v${COMPACT_VERSION}_x86_64-unknown-linux-musl.zip
           compactc --version
 
-      - name: Install api dependencies
-        working-directory: api
-        run: npm ci --legacy-peer-deps
-
       - name: Compile and test contract
         working-directory: contract
         run: |
-          npm ci --legacy-peer-deps
           npm run compact
           npm run typecheck
           npm run lint
@@ -49,13 +44,11 @@ jobs:
       - name: api
         working-directory: api
         run: |
-          npm ci --legacy-peer-deps
           npm run build
 
       - name: Compile bboard-cli
         working-directory: bboard-cli
         run: |
-          npm ci --legacy-peer-deps
           # npm run lint
           npm run typecheck
           npm run build
@@ -64,7 +57,6 @@ jobs:
       - name: Compile bboard-ui
         working-directory: bboard-ui
         run: |
-          npm ci --legacy-peer-deps
           npm run lint
           npm run build
           # npm run typecheck
