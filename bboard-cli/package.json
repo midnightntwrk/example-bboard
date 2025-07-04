@@ -16,5 +16,9 @@
     "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -R ../contract/src/managed dist/contract/src/managed",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "^24.0.10"
   }
 }

@@ -4,6 +4,9 @@ import reactPlugin from 'eslint-plugin-react';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 
 const config = tseslint.config(
+  {
+    ignores: ['eslint.config.js', 'vitest.config.js', 'vitest.setup.js'],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   reactPlugin.configs.flat.recommended,
