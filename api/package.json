@@ -13,8 +13,5 @@
     "test-api": "DEBUG='testcontainers' NODE_OPTIONS=--experimental-vm-modules jest  --detectOpenHandles --forceExit",
     "build": "rm -rf dist && tsc --project tsconfig.build.json",
     "lint": "eslint src"
-  },
-  "devDependencies": {
-    "typescript": "^5.8.3"
   }
 }

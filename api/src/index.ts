@@ -140,7 +140,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async post(message: string): Promise<void> {
     this.logger?.info(`postingMessage: ${message}`);
 
-    const txData = await (this.deployedContract.callTx.post as (message: string) => Promise<any>)(message);
+    const txData = await this.deployedContract.callTx.post(message);
 
     this.logger?.trace({
       transactionAdded: {
@@ -162,7 +162,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async takeDown(): Promise<void> {
     this.logger?.info('takingDownMessage');
 
-    const txData = await (this.deployedContract.callTx.takeDown as () => Promise<any>)();
+    const txData = await this.deployedContract.callTx.takeDown();
 
     this.logger?.trace({
       transactionAdded: {
