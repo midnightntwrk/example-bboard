@@ -89,7 +89,7 @@ export class BBoardSimulator {
     return ledger(this.circuitContext.transactionContext.state);
   }
 
-  public publicKey(): Uint8Array<ArrayBufferLike> {
+  public publicKey(): Uint8Array {
     const instance = convert_bigint_to_Uint8Array(
       32,
       this.getLedger().instance,
