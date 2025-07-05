@@ -71,7 +71,7 @@ export const TextPromptDialog: React.FC<Readonly<TextPromptDialogProps>> = ({ pr
           data-testid="textprompt-dialog-ok-btn"
           disabled={!text.length}
           disableElevation
-          onClick={(_) => {
+          onClick={() => {
             onSubmit(text);
           }}
           type="submit"
