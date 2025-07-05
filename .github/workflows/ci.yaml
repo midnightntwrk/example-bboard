@@ -18,6 +18,12 @@ jobs:
         with:
           node-version: "22"
 
+      # A bug in npm optional dependencies fails the build, which is fixed in npm 11 or later
+      # but the setup-node action isn't using a newer version of npm yet
+      # See https://github.com/npm/cli/issues/4828
+      - name: Update NPM
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
