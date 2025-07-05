@@ -22,8 +22,13 @@ jobs:
       # but the setup-node action isn't using a newer version of npm yet
       # See https://github.com/npm/cli/issues/4828
       - name: Update NPM
-        run: npm install -g npm@latest
+        run: |
+          npm install -g npm@latest
+          npm --version
 
+      # We use --legacy-peer-deps because as of v3.4.1 vite-plugin-wasm doesn't play well with vite 7
+      # So this allows them to be installed regardless; They *have* implemented support, they just haven't published a release yet
+      # https://github.com/Menci/vite-plugin-wasm/pull/73
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
