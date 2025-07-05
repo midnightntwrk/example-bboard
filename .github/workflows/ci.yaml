@@ -69,5 +69,10 @@ jobs:
         working-directory: bboard-ui
         run: |
           npm run lint
-          npm run build
+          # npm run build
+          rm -rf ./dist
+          tsc
+          vite build --mode testnet
+          cp -r ../contract/src/managed/bboard/keys ./dist/keys
+          cp -r ../contract/src/managed/bboard/zkir ./dist/zkir
           # npm run typecheck
