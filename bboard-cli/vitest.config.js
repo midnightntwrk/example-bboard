@@ -18,7 +18,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   mode: 'node',
   test: {
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./vitest.setup.js'],
     testTimeout: 1000 * 60 * 45,
     deps: {
       interopDefault: true,

@@ -46,7 +46,6 @@ import {
 } from '@midnight-ntwrk/midnight-js-types';
 import { type Wallet } from '@midnight-ntwrk/wallet-api';
 import * as Rx from 'rxjs';
-import * as crypto from 'crypto';
 import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
 import { Transaction as ZswapTransaction } from '@midnight-ntwrk/zswap';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
@@ -425,24 +424,21 @@ export const run = async (config: Config, logger: Logger, dockerEnv?: DockerComp
       await mainLoop(providers, rli, logger);
     }
   } catch (e) {
-    if (e instanceof Error) {
-      logger.error(`Found error '${e.message}'`);
-      logger.info('Exiting...');
-      logger.debug(`${e.stack}`);
-    } else {
-      throw e;
-    }
+    logError(logger, e);
+    logger.info('Exiting...');
   } finally {
     try {
       rli.close();
       rli.removeAllListeners();
     } catch (e) {
+      logError(logger, e);
     } finally {
       try {
         if (wallet !== null) {
           await wallet.close();
         }
       } catch (e) {
+        logError(logger, e);
       } finally {
         try {
           if (env !== undefined) {
@@ -450,8 +446,19 @@ export const run = async (config: Config, logger: Logger, dockerEnv?: DockerComp
             logger.info('Goodbye');
             process.exit(0);
           }
-        } catch (e) {}
+        } catch (e) {
+          logError(logger, e);
+        }
       }
     }
   }
 };
+
+function logError(logger: Logger, e: unknown) {
+  if (e instanceof Error) {
+    logger.error(`Found error '${e.message}'`);
+    logger.debug(`${e.stack}`);
+  } else {
+    logger.error(`Found error (unknown type)`);
+  }
+}

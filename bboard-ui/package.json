@@ -6,13 +6,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "http-server --port 0 ./dist",
-    "build:start": "npm run build && npm run start",
-    "dev": "vite",
-    "prepack": "yarn build",
     "build": "rm -rf ./dist && tsc && vite build --mode testnet && cp -r ../contract/src/managed/bboard/keys ./dist/keys && cp -r ../contract/src/managed/bboard/zkir ./dist/zkir",
+    "build:start": "npm run build && npm run start",
+    "ci": "npm run typecheck && npm run lint",
+    "dev": "vite",
+    "lint": "eslint ./src",
+    "start": "http-server --port 0 ./dist",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
-    "lint": "eslint ./src"
+    "prepack": "yarn build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -25,6 +27,7 @@
     "react-router-dom": "7.6.1"
   },
   "devDependencies": {
+    "@swc/core": "^1.12.9",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.1",

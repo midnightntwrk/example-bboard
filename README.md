@@ -1,6 +1,6 @@
 # Bulletin board contract and DApp
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)  
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
 This example implements a simple one-item bulletin board. It allows
@@ -22,9 +22,11 @@ The interface allows the user to deploy a new bboard contract, post a new messag
 
 ## How to use the CLI
 
+Note: if installing via npm, you need to pass `--legacy-peer-deps` because of the more modern use of vite.
+
 1- Install the node modules in the root
 2- Install the node modules in `api`
-3- Install the node modules in `contract` and compile it
+3- Install the node modules in `contract`, compile the contract with `npm run compact`, and then the typescript with `npm run build`
 4- Install the node modules in `bboard-cli`, build it and run `npm run testnet-remote` to launch the app
 
 ## How to use the user interface
