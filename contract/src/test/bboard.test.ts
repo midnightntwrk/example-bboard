@@ -20,7 +20,7 @@ import {
 } from "@midnight-ntwrk/midnight-js-network-id";
 import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
-import { STATE } from "../managed/bboard/contract/index.cjs";
+import { State } from "../managed/bboard/contract/index.cjs";
 
 setNetworkId(NetworkId.Undeployed);
 
@@ -36,11 +36,11 @@ describe("BBoard smart contract", () => {
     const key = randomBytes(32);
     const simulator = new BBoardSimulator(key);
     const initialLedgerState = simulator.getLedger();
-    expect(initialLedgerState.instance).toEqual(1n);
+    expect(initialLedgerState.sequence).toEqual(1n);
     expect(initialLedgerState.message.is_some).toEqual(false);
     expect(initialLedgerState.message.value).toEqual("");
-    expect(initialLedgerState.poster).toEqual(new Uint8Array(32));
-    expect(initialLedgerState.state).toEqual(STATE.vacant);
+    expect(initialLedgerState.owner).toEqual(new Uint8Array(32));
+    expect(initialLedgerState.state).toEqual(State.VACANT);
     const initialPrivateState = simulator.getPrivateState();
     expect(initialPrivateState).toEqual({ secretKey: key });
   });
@@ -55,11 +55,11 @@ describe("BBoard smart contract", () => {
     expect(initialPrivateState).toEqual(simulator.getPrivateState());
     // And all the correct things should have been updated in the public ledger state
     const ledgerState = simulator.getLedger();
-    expect(ledgerState.instance).toEqual(1n);
+    expect(ledgerState.sequence).toEqual(1n);
     expect(ledgerState.message.is_some).toEqual(true);
     expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.poster).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(STATE.occupied);
+    expect(ledgerState.owner).toEqual(simulator.publicKey());
+    expect(ledgerState.state).toEqual(State.OCCUPIED);
   });
 
   it("lets you take down a message", () => {
@@ -74,12 +74,12 @@ describe("BBoard smart contract", () => {
     expect(initialPrivateState).toEqual(simulator.getPrivateState());
     // And all the correct things should have been updated in the public ledger state
     const ledgerState = simulator.getLedger();
-    expect(ledgerState.instance).toEqual(2n);
+    expect(ledgerState.sequence).toEqual(2n);
     expect(ledgerState.message.is_some).toEqual(false);
     expect(ledgerState.message.value).toEqual("");
-    // Technically the circuit doesn't clear the previous poster
-    expect(ledgerState.poster).toEqual(initialPublicKey);
-    expect(ledgerState.state).toEqual(STATE.vacant);
+    // Technically the circuit doesn't clear the previous owner
+    expect(ledgerState.owner).toEqual(initialPublicKey);
+    expect(ledgerState.state).toEqual(State.VACANT);
   });
 
   it("lets you post another message after taking down the first", () => {
@@ -93,11 +93,11 @@ describe("BBoard smart contract", () => {
     expect(initialPrivateState).toEqual(simulator.getPrivateState());
     // And all the correct things should have been updated in the public ledger state
     const ledgerState = simulator.getLedger();
-    expect(ledgerState.instance).toEqual(2n);
+    expect(ledgerState.sequence).toEqual(2n);
     expect(ledgerState.message.is_some).toEqual(true);
     expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.poster).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(STATE.occupied);
+    expect(ledgerState.owner).toEqual(simulator.publicKey());
+    expect(ledgerState.state).toEqual(State.OCCUPIED);
   });
 
   it("lets a different user post a message after taking down the first", () => {
@@ -108,11 +108,11 @@ describe("BBoard smart contract", () => {
     const message = "Joy was more than just an absence of discomfort.";
     simulator.post(message);
     const ledgerState = simulator.getLedger();
-    expect(ledgerState.instance).toEqual(2n);
+    expect(ledgerState.sequence).toEqual(2n);
     expect(ledgerState.message.is_some).toEqual(true);
     expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.poster).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(STATE.occupied);
+    expect(ledgerState.owner).toEqual(simulator.publicKey());
+    expect(ledgerState.state).toEqual(State.OCCUPIED);
   });
 
   it("doesn't let the same user post twice", () => {
@@ -143,7 +143,7 @@ describe("BBoard smart contract", () => {
     );
     simulator.switchUser(randomBytes(32));
     expect(() => simulator.takeDown()).toThrow(
-      "failed assert: Attempted to take down post, but not the current poster",
+      "failed assert: Attempted to take down post, but not the current owner",
     );
   });
 });
