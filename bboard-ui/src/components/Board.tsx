@@ -37,7 +37,7 @@ import { type BBoardDerivedState, type DeployedBBoardAPI } from '../../../api/sr
 import { useDeployedBoardContext } from '../hooks';
 import { type BoardDeployment } from '../contexts';
 import { type Observable } from 'rxjs';
-import { STATE } from '../../../contract/src/index';
+import { State } from '../../../contract/src/index';
 import { EmptyCardContent } from './Board.EmptyCardContent';
 
 /** The props required by the {@link Board} component. */
@@ -188,7 +188,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
           <CardHeader
             avatar={
               boardState ? (
-                boardState.state === STATE.vacant || (boardState.state === STATE.occupied && boardState.isOwner) ? (
+                boardState.state === State.VACANT || (boardState.state === State.OCCUPIED && boardState.isOwner) ? (
                   <LockOpenIcon data-testid="post-unlocked-icon" />
                 ) : (
                   <LockIcon data-testid="post-locked-icon" />
@@ -211,7 +211,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
           />
           <CardContent>
             {boardState ? (
-              boardState.state === STATE.occupied ? (
+              boardState.state === State.OCCUPIED ? (
                 <Typography data-testid="board-posted-message" minHeight={160} color="primary">
                   {boardState.message}
                 </Typography>
@@ -244,7 +244,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                 <IconButton
                   title="Post message"
                   data-testid="board-post-message-btn"
-                  disabled={boardState?.state === STATE.occupied || !messagePrompt?.length}
+                  disabled={boardState?.state === State.OCCUPIED || !messagePrompt?.length}
                   onClick={onPostMessage}
                 >
                   <WriteIcon />
@@ -253,7 +253,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                   title="Take down message"
                   data-testid="board-take-down-message-btn"
                   disabled={
-                    boardState?.state === STATE.vacant || (boardState?.state === STATE.occupied && !boardState.isOwner)
+                    boardState?.state === State.VACANT || (boardState?.state === State.OCCUPIED && !boardState.isOwner)
                   }
                   onClick={onDeleteMessage}
                 >

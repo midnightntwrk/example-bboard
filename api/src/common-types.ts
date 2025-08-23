@@ -21,7 +21,7 @@
 
 import { type MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import { type FoundContract } from '@midnight-ntwrk/midnight-js-contracts';
-import type { STATE, BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index';
+import type { State, BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index';
 
 export const bboardPrivateStateKey = 'bboardPrivateState';
 export type PrivateStateId = typeof bboardPrivateStateKey;
@@ -81,17 +81,17 @@ export type DeployedBBoardContract = FoundContract<BBoardContract>;
  * A type that represents the derived combination of public (or ledger), and private state.
  */
 export type BBoardDerivedState = {
-  readonly state: STATE;
-  readonly instance: bigint;
+  readonly state: State;
+  readonly sequence: bigint;
   readonly message: string | undefined;
 
   /**
    * A readonly flag that determines if the current message was posted by the current user.
    *
    * @remarks
-   * The `poster` property of the public (or ledger) state is the public key of the message poster, while
+   * The `owner` property of the public (or ledger) state is the public key of the message owner, while
    * the `secretKey` property of {@link BBoardPrivateState} is the secret key of the current user. If
-   * `poster` corresponds to `secretKey`, then `isOwner` is `true`.
+   * `owner` corresponds to the public key derived from `secretKey`, then `isOwner` is `true`.
    */
   readonly isOwner: boolean;
 };

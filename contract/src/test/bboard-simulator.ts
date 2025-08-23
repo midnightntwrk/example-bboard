@@ -90,14 +90,14 @@ export class BBoardSimulator {
   }
 
   public publicKey(): Uint8Array {
-    const instance = convert_bigint_to_Uint8Array(
+    const sequence = convert_bigint_to_Uint8Array(
       32,
-      this.getLedger().instance,
+      this.getLedger().sequence,
     );
     return this.contract.circuits.publicKey(
       this.circuitContext,
       this.getPrivateState().secretKey,
-      instance,
+      sequence,
     ).result;
   }
 }

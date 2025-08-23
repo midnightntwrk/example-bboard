@@ -36,7 +36,7 @@ import {
   type PrivateStateId,
   bboardPrivateStateKey,
 } from '../../api/src/index';
-import { ledger, type Ledger, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
+import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.cjs';
 import {
   type BalancedTransaction,
   createBalancedTx,
@@ -135,12 +135,12 @@ const displayLedgerState = async (
   if (ledgerState === null) {
     logger.info(`There is no bulletin board contract deployed at ${contractAddress}`);
   } else {
-    const boardState = ledgerState.state === STATE.occupied ? 'occupied' : 'vacant';
+    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
     const latestMessage = !ledgerState.message.is_some ? 'none' : ledgerState.message.value;
     logger.info(`Current state is: '${boardState}'`);
     logger.info(`Current message is: '${latestMessage}'`);
-    logger.info(`Current instance is: ${ledgerState.instance}`);
-    logger.info(`Current poster is: '${toHex(ledgerState.poster)}'`);
+    logger.info(`Current sequence is: ${ledgerState.sequence}`);
+    logger.info(`Current owner is: '${toHex(ledgerState.owner)}'`);
   }
 };
 
@@ -160,20 +160,20 @@ const displayPrivateState = async (providers: BBoardProviders, logger: Logger): 
 /* **********************************************************************
  * displayDerivedState: shows the values of derived state which is made
  * by combining the ledger state with private state. In this example, the
- * derived state compares the poster key with the private secret key to
- * determine if the current user is the poster of the current message.
+ * derived state compares the owner's key with the private secret key to
+ * determine if the current user is the owner of the current message.
  */
 
 const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger: Logger) => {
   if (ledgerState === undefined) {
     logger.info(`No bulletin board state currently available`);
   } else {
-    const boardState = ledgerState.state === STATE.occupied ? 'occupied' : 'vacant';
-    const latestMessage = ledgerState.state === STATE.occupied ? ledgerState.message : 'none';
+    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
+    const latestMessage = ledgerState.state === State.OCCUPIED ? ledgerState.message : 'none';
     logger.info(`Current state is: '${boardState}'`);
     logger.info(`Current message is: '${latestMessage}'`);
-    logger.info(`Current instance is: ${ledgerState.instance}`);
-    logger.info(`Current poster is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
+    logger.info(`Current sequence is: ${ledgerState.sequence}`);
+    logger.info(`Current owner is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
   }
 };
 

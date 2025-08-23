@@ -20,8 +20,8 @@
  */
 
 import contractModule from '../../contract/src/managed/bboard/contract/index.cjs';
-const { Contract, ledger, pureCircuits, STATE } = contractModule;
-// import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/index';
+const { Contract, ledger, pureCircuits, State } = contractModule;
+// import { Contract, ledger, pureCircuits, State } from '../../contract/src/index';
 
 import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
@@ -32,7 +32,7 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-// import { Contract, ledger, pureCircuits, STATE } from '../../contract/src/managed/bboard/contract/index.cjs';
+// import { Contract, ledger, pureCircuits, State } from '../../contract/src/managed/bboard/contract/index.cjs';
 import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -61,7 +61,7 @@ export interface DeployedBBoardAPI {
  * The `BBoardPrivateState` is managed at the DApp level by a private state provider. As such, this
  * private state is shared between all instances of {@link BBoardAPI}, and their underlying deployed
  * contracts. The private state defines a `'secretKey'` property that effectively identifies the current
- * user, and is used to determine if the current user is the poster of the message as the observable
+ * user, and is used to determine if the current user is the owner of the message as the observable
  * contract state changes.
  *
  * In the future, Midnight.js will provide a private state provider that supports private state storage
@@ -88,8 +88,8 @@ export class BBoardAPI implements DeployedBBoardAPI {
               ledgerStateChanged: {
                 ledgerState: {
                   ...ledgerState,
-                  state: ledgerState.state === STATE.occupied ? 'occupied' : 'vacant',
-                  poster: toHex(ledgerState.poster),
+                  state: ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant',
+                  owner: toHex(ledgerState.owner),
                 },
               },
             }),
@@ -105,14 +105,14 @@ export class BBoardAPI implements DeployedBBoardAPI {
       (ledgerState, privateState) => {
         const hashedSecretKey = pureCircuits.publicKey(
           privateState.secretKey,
-          convert_bigint_to_Uint8Array(32, ledgerState.instance),
+          convert_bigint_to_Uint8Array(32, ledgerState.sequence),
         );
 
         return {
           state: ledgerState.state,
           message: ledgerState.message.value,
-          instance: ledgerState.instance,
-          isOwner: toHex(ledgerState.poster) === toHex(hashedSecretKey),
+          sequence: ledgerState.sequence,
+          isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
         };
       },
     );
@@ -156,7 +156,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
    *
    * @remarks
    * This method can fail during local circuit execution if the bulletin board is currently vacant,
-   * or if the currently posted message isn't owned by the poster computed from the current private
+   * or if the currently posted message isn't owned by the owner computed from the current private
    * state.
    */
   async takeDown(): Promise<void> {
