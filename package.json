@@ -13,6 +13,7 @@
       "contract"
     ]
   },
+  "packageManager": "npm@10.2.3",
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "^0.8.1",
     "@midnight-ntwrk/dapp-connector-api": "^3.0.0",
