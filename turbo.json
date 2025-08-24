@@ -3,18 +3,18 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["compact"],
+      "dependsOn": ["^compact"],
       "outputLogs": "new-only",
       "inputs": ["src/**/*.ts", "src/**/*.mts", "src/**/*.tsx", "!src/**/*.test.ts", "tsconfig.json", "tsconfig.build.json"],
       "outputs": ["dist/**"]
     },
     "lint": {
       "outputLogs": "new-only",
-      "dependsOn": ["compact", "build"]
+      "dependsOn": ["^compact", "build"]
     },
     "test": {
       "outputLogs": "new-only",
-      "dependsOn": ["build", "compact"],
+      "dependsOn": ["build", "^compact"],
       "inputs": ["src/**/*.ts", "jest.config.ts", "tsconfig.json", "*.yml", "dist/**/.js"],
       "outputs": ["reports/**"]
     }
