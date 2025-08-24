@@ -1,7 +1,7 @@
 {
   "extends": ["//"],
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["compact"],
       "outputLogs": "new-only",
