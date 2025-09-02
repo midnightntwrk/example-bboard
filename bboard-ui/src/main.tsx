@@ -42,7 +42,7 @@ export const logger = pino.pino({
   level: import.meta.env.VITE_LOGGING_LEVEL as string,
 });
 
-logger.trace('networkId = ', networkId);
+logger.trace(`networkId = ${networkId}`);
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
