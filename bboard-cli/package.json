@@ -10,7 +10,7 @@
     "ci": "npm run typecheck && npm run lint && npm run build",
     "lint": "eslint src",
     "prepack": "npm run build",
-    "standalone": "docker compose -f standalone.yml pull && node --experimental-specifier-resolution=node dist/launcher/standalone.js",
+    "standalone": "docker compose -f standalone.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/launcher/standalone.ts",
     "testnet-remote": "node --experimental-specifier-resolution=node --loader ts-node/esm src/launcher/testnet-remote.ts",
     "testnet-remote-ps": "node --experimental-specifier-resolution=node dist/launcher/testnet-remote-start-proof-server.js",
     "testnet-local": "node --experimental-specifier-resolution=node dist/launcher/testnet-local.js",
