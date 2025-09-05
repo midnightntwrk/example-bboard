@@ -1,6 +1,7 @@
 {
   "extends": ["//"],
   "$schema": "https://turbo.build/schema.json",
+  "dangerouslyDisablePackageManagerCheck": true,
   "tasks": {
     "build": {
       "dependsOn": ["^compact"],
