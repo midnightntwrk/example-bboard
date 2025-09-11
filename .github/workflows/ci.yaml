@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 env:
+    # needed to stop rate limiting of compact download.
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
