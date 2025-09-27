@@ -1,39 +1,232 @@
-# Bulletin board contract and DApp
+# Bulletin Board DApp
 
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
-This example implements a simple one-item bulletin board. It allows
-users to post a single message at a time, and only the user who posted
-the message can take it down and make the board vacant again.
+A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
 
-The full description of the bulletin board scenario, as well as a
-detailed discussion of the code, can be found in
-[part 3](https://docs.midnight.network/develop/tutorial/creating/)
-of the Midnight developer tutorial.
+## Project Structure
 
-The `api` directory contains different methods, classes and types required to run the bboard CLI and the bboard UI.
+```
+bulletin-board/
+├── contract/               # Smart contract in Compact language
+│   └── src/               # Contract source and utilities
+├── api/                   # Methods, classes and types for CLI and UI
+├── bboard-cli/            # Command-line interface
+│   └── src/               # CLI implementation
+└── bboard-ui/             # Web browser interface
+    └── src/               # Web UI implementation
+```
 
-The `contract` directory contains the Compact contract and its utilities.
+## Prerequisites
 
-The `bboard-cli` directory contains the code required to run the bboard dapp as a CLI app.
+### 1. Node.js Version Check
 
-The `bboard-ui` directory contains the code needed to build the interface and interact with it in the browser.
-The interface allows the user to deploy a new bboard contract, post a new message and take it down.
+You need Node.js (tested with current LTS):
 
-## How to use the CLI
+```bash
+node --version
+```
 
-Note: if installing via npm, you need to pass `--legacy-peer-deps` because of the more modern use of vite.
+Expected output: `v18.0.0` or higher.
 
-1. Install the node modules in the root
-1. Install the node modules in `api`
-1. Install the node modules in `contract`, compile the contract with `npm run compact`, and then the typescript with `npm run build`
-1. Install the node modules in `bboard-cli`, build it and run `npm run testnet-remote` to launch the app
+If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
 
-## How to use the user interface
+### 2. Docker Installation (UI Only)
 
-1. Install the node modules in the root
-1. Install the node modules in `api`
-1. Install the node modules in `contract` and compile it
-1. Install the node modules in `bboard-ui`
-1. Run `npm run build:start` to build the project and run a local server
+The [proof server](https://docs.midnight.network/develop/tutorial/using/proof-server) runs in Docker for the web UI:
+
+```bash
+docker --version
+```
+
+Expected output: `Docker version X.X.X`.
+
+If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop/). Make sure Docker Desktop is running.
+
+### 3. Lace Wallet Extension (UI Only)
+
+For the web interface, install [the Lace wallet browser extension](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk?hl=en) from your browser's extension store.
+
+## Setup Instructions
+
+### Install Project Dependencies
+
+```bash
+# Install root dependencies
+npm install
+
+# Install API dependencies
+cd api && npm install && cd ..
+
+# Install contract dependencies and compile
+cd contract && npm install
+```
+
+### Compile the Smart Contract
+
+The Compact compiler generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+
+```bash
+cd contract
+npm run compact    # Compiles the Compact contract
+npm run build      # Builds TypeScript
+cd ..
+```
+
+Expected output:
+
+```
+Compiling bulletin board contract...
+Contract compiled successfully
+```
+
+### Build the CLI Interface
+
+```bash
+cd bboard-cli
+npm install
+npm run build
+cd ..
+```
+
+### Build the UI Interface (Optional)
+
+Only needed if you want to use the web interface:
+
+```bash
+cd bboard-ui
+npm install
+npm run build
+cd ..
+```
+
+## Option 1: CLI Interface (Standalone)
+
+The CLI works completely standalone - no additional setup required.
+
+### Run the CLI
+
+```bash
+cd bboard-cli
+npm run testnet-remote
+```
+
+### Using the CLI
+
+#### Create a Wallet
+
+1. Choose option `1` to build a fresh wallet
+2. The system will generate a wallet address and seed
+3. **Save both the address and seed** - you'll need them later
+
+Expected output:
+
+```
+Your wallet seed is: [64-character hex string]
+Your wallet address is: mn_shield-addr_test1...
+```
+
+#### Fund Your Wallet
+
+Before deploying contracts, you need testnet tokens.
+
+1. Copy your wallet address from the output above
+2. Visit the [testnet faucet](https://midnight.network/test-faucet)
+3. Paste your address and request funds
+4. Wait for the CLI to detect the funds (takes 2-3 minutes)
+
+Expected output:
+
+```
+Your wallet balance is: 1000000000
+```
+
+#### Deploy Your Contract
+
+1. Choose the contract deployment option
+2. Wait for deployment (takes ~30 seconds)
+3. **Save the contract address** for future use
+
+Expected output:
+
+```
+Deployed bulletin board contract at address: [contract address]
+```
+
+#### Use the Bulletin Board
+
+You can now:
+
+- **Post** a message to the bulletin board
+- **View** the current message
+- **Remove** your message (only if you posted it)
+- **Exit** when done
+
+Each action creates a real transaction on Midnight Testnet.
+
+## Option 2: Web UI Interface
+
+The web interface requires additional services and browser setup.
+
+### Start the Proof Server (keep this terminal open)
+
+The proof server must be running before starting the UI:
+
+```bash
+cd bboard-cli
+docker compose -f proof-server-testnet.yml up -d
+```
+
+Verify it's running:
+
+```bash
+docker ps
+```
+
+### Start the Web Interface
+
+```bash
+cd bboard-ui
+npm run start
+```
+
+The UI will be available at:
+
+- http://127.0.0.1:8080
+
+### Browser Setup
+
+1. **Open the UI URL** in a browser with Lace wallet extension installed
+2. **Set up Lace wallet** if it's your first time
+3. **Authorize the application** when Lace wallet prompts
+4. Use the bulletin board web interface
+
+## Useful Links
+
+- [Testnet Faucet](https://midnight.network/test-faucet) - Get testnet funds (CLI auto-funds)
+- [Midnight Documentation](https://docs.midnight.network/develop/tutorial/building) - Complete developer guide
+- [Compact Language Guide](https://docs.midnight.network/develop/reference/compact/writing) - Smart contract language reference
+- [Lace Wallet](https://www.lace.io/) - Browser wallet for Midnight
+
+## Troubleshooting
+
+| Common Issue                       | Solution                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm install` fails                | Ensure you're using Node.js LTS version. If you get ERESOLVE errors, try `npm install --legacy-peer-deps` |
+| Contract compilation fails         | Ensure you're in `contract` directory, run `npm run compact` before `npm run build`                       |
+| Network connection timeout         | CLI requires internet connection, restart if connection times out                                         |
+| Token funding takes too long       | Wait 1-2 minutes, funding is automatic in CLI                                                             |                                                                                                         |
+| "Application not authorized" error | Start proof server: `docker compose -f proof-server-testnet.yml up -d`                                    |
+| Lace wallet not detected           | Install Lace wallet browser extension and refresh page                                                    |
+| Docker issues                      | Ensure Docker Desktop is running, check `docker --version`                                                |
+| Port 6300 in use                   | Run `docker compose down` then restart services                                                           |
+| Dependencies won't install         | Use Node.js LTS version. For older npm versions, you may need `--legacy-peer-deps`                        |
+| Contract deployment fails          | Verify wallet has sufficient balance and network connection                                               |
+
+## Notes
+
+- CLI and UI can run simultaneously
+- Proof server (Docker) only needed for UI, not CLI
+- Contract must be compiled before building CLI or UI
+- CLI provides automatic token funding, UI requires manual wallet management
