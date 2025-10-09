@@ -30,6 +30,6 @@
     "eslint-plugin-prettier": "^5.5.1",
     "globals": "^16.4.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.4"
   }
 }
