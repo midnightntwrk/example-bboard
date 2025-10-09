@@ -54,7 +54,7 @@
     "http-server": "^14.1.1",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.41.0",
     "vite": "^7.1.9",
     "vite-plugin-top-level-await": "^1.6.0",
