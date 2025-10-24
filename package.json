@@ -32,11 +32,11 @@
     "@midnight-ntwrk/zswap": "^4.0.0",
     "buffer": "^6.0.3",
     "fp-ts": "^2.16.11",
-    "pino": "^10.0.0",
+    "pino": "^10.1.0",
     "pino-pretty": "^13.1.2",
     "rxjs": "^7.8.2",
     "semver": "^7.7.3",
-    "testcontainers": "^11.7.1",
+    "testcontainers": "^11.7.2",
     "ws": "^8.18.3"
   },
   "devDependencies": {
@@ -56,7 +56,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.1",
-    "vite": "^7.1.10",
+    "vite": "^7.1.11",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0"
   }
