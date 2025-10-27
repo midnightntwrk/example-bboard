@@ -17,12 +17,12 @@ import {
   type CircuitContext,
   QueryContext,
   sampleContractAddress,
-  constructorContext,
+  constructorContext
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
   type Ledger,
-  ledger,
+  ledger
 } from "../managed/bboard/contract/index.cjs";
 import { type BBoardPrivateState, witnesses } from "../witnesses.js";
 
@@ -33,7 +33,7 @@ function bigIntToBytes(byteLength: number, value: bigint): Uint8Array {
   const bytes = new Uint8Array(byteLength);
   let num = value;
   for (let i = byteLength - 1; i >= 0; i--) {
-    bytes[i] = Number(num & 0xFFn);
+    bytes[i] = Number(num & 0xffn);
     num = num >> 8n;
   }
   return bytes;
@@ -51,9 +51,9 @@ export class BBoardSimulator {
     const {
       currentPrivateState,
       currentContractState,
-      currentZswapLocalState,
+      currentZswapLocalState
     } = this.contract.initialState(
-      constructorContext({ secretKey }, "0".repeat(64)),
+      constructorContext({ secretKey }, "0".repeat(64))
     );
     this.circuitContext = {
       currentPrivateState,
@@ -61,8 +61,8 @@ export class BBoardSimulator {
       originalState: currentContractState,
       transactionContext: new QueryContext(
         currentContractState.data,
-        sampleContractAddress(),
-      ),
+        sampleContractAddress()
+      )
     };
   }
 
@@ -73,7 +73,7 @@ export class BBoardSimulator {
    */
   public switchUser(secretKey: Uint8Array) {
     this.circuitContext.currentPrivateState = {
-      secretKey,
+      secretKey
     };
   }
 
@@ -89,27 +89,24 @@ export class BBoardSimulator {
     // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.post(
       this.circuitContext,
-      message,
+      message
     ).context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public takeDown(): Ledger {
     this.circuitContext = this.contract.impureCircuits.takeDown(
-      this.circuitContext,
+      this.circuitContext
     ).context;
     return ledger(this.circuitContext.transactionContext.state);
   }
 
   public publicKey(): Uint8Array {
-    const sequence = bigIntToBytes(
-      32,
-      this.getLedger().sequence,
-    );
+    const sequence = bigIntToBytes(32, this.getLedger().sequence);
     return this.contract.circuits.publicKey(
       this.circuitContext,
       this.getPrivateState().secretKey,
-      sequence,
+      sequence
     ).result;
   }
 }
