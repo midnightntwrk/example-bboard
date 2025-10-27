@@ -1,7 +1,7 @@
 # Bulletin Board DApp
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.26.0-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
 
@@ -28,7 +28,7 @@ You need Node.js (tested with current LTS):
 node --version
 ```
 
-Expected output: `v22.15.0` or higher.
+Expected output: `v22.17.0` or higher.
 
 If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
 
