@@ -18,7 +18,6 @@ import {
   QueryContext,
   sampleContractAddress,
   constructorContext,
-  convert_bigint_to_Uint8Array,
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
@@ -26,6 +25,19 @@ import {
   ledger,
 } from "../managed/bboard/contract/index.cjs";
 import { type BBoardPrivateState, witnesses } from "../witnesses.js";
+
+/**
+ * Convert a bigint to a Uint8Array of specified byte length.
+ */
+function bigIntToBytes(byteLength: number, value: bigint): Uint8Array {
+  const bytes = new Uint8Array(byteLength);
+  let num = value;
+  for (let i = byteLength - 1; i >= 0; i--) {
+    bytes[i] = Number(num & 0xFFn);
+    num = num >> 8n;
+  }
+  return bytes;
+}
 
 /**
  * Serves as a testbed to exercise the contract in tests
@@ -90,7 +102,7 @@ export class BBoardSimulator {
   }
 
   public publicKey(): Uint8Array {
-    const sequence = convert_bigint_to_Uint8Array(
+    const sequence = bigIntToBytes(
       32,
       this.getLedger().sequence,
     );
