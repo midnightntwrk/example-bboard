@@ -36,7 +36,7 @@
     "pino-pretty": "^13.1.2",
     "rxjs": "^7.8.2",
     "semver": "^7.7.3",
-    "testcontainers": "^11.8.1",
+    "testcontainers": "^11.9.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {
@@ -52,7 +52,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
     "http-server": "^14.1.1",
-    "prettier": "^3.6.2",
+    "prettier": "^3.7.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.3",
