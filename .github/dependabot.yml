@@ -18,6 +18,25 @@ updates:
       - 'npm'
     versioning-strategy: auto
 
+    groups:
+      midnight:
+        patterns:
+          - "^@midnight-ntwrk/.*"
+      frontend-tooling:
+        patterns:
+          - "^vite$"
+          - "^vite-.*"
+          - "^@vitejs/.*"
+          - "^esbuild$"
+          - "^vite-plugin-wasm$"
+      dev-dependencies:
+        patterns:
+          - "^@types/.*"
+          - "^typescript$"
+          - "^vitest$"
+          - "^jest$"
+          - "^@testing-library/.*"
+
   - package-ecosystem: "npm"
     directory: "/contract"
     schedule:
@@ -28,7 +47,7 @@ updates:
       - 'contract'
 
   - package-ecosystem: "npm"
-    directory: "/counter-cli"
+    directory: "/bboard-cli"
     schedule:
       interval: "daily"
     labels:
