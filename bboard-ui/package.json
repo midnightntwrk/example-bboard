@@ -30,7 +30,7 @@
     "@swc/core": "^1.15.3",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint-plugin-react": "^7.37.5",
     "vite-plugin-node-polyfills": "^0.24.0"
   }
