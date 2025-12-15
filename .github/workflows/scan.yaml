@@ -1,4 +1,4 @@
-name: CI
+name: Scan
 
 on:
   push:
@@ -11,7 +11,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  install-and-test:
+  scan:
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -19,5 +19,8 @@ jobs:
       security-events: write
       statuses: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  #v6.0.1
+
       - name: Scan code
-        uses: midnightntwrk/upload-sarif-github-action@giles-scan-action
+        uses: midnightntwrk/upload-sarif-github-action/scan@giles-scan-action
