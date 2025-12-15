@@ -22,6 +22,8 @@ bulletin-board/
 
 ### 1. Node.js Version Check
 
+fork test.
+
 You need Node.js (tested with current LTS):
 
 ```bash
