@@ -29,8 +29,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           scan_rust: false
           scan_typescript: false
-          codeql_paths: bboard-ui,contract,api,bboard-cli
-
+          # codeql_paths: bboard-cli
+          # contract,api,
       - name: Initialize CodeQL
         uses: github/codeql-action/init@ce729e4d353d580e6cacd6a8cf2921b72e5e310a
         with:
