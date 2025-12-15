@@ -24,3 +24,5 @@ jobs:
 
       - name: Scan code
         uses: midnightntwrk/upload-sarif-github-action/scan@giles-scan-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
