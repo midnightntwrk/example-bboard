@@ -24,13 +24,12 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  #v6.0.1
 
       - name: Scan code
-        uses: midnightntwrk/upload-sarif-github-action/scan@giles-scan-action
+        uses: midnightntwrk/upload-sarif-github-action/scan@d4419cb7f06b276c2c7ef74953f34db3624fd415
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           scan_rust: false
           scan_typescript: false
-          # codeql_paths: bboard-cli
-          # contract,api,
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@ce729e4d353d580e6cacd6a8cf2921b72e5e310a
         with:
