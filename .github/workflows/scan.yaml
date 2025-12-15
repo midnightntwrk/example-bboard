@@ -43,3 +43,16 @@ jobs:
         with:
           upload: true
           category: bboard-ui
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@ce729e4d353d580e6cacd6a8cf2921b72e5e310a
+        with:
+          source-root: bboard-cli
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@ce729e4d353d580e6cacd6a8cf2921b72e5e310a
+        with:
+          upload: true
+          category: bboard-cli
