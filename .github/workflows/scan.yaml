@@ -42,3 +42,4 @@ jobs:
         uses: github/codeql-action/analyze@ce729e4d353d580e6cacd6a8cf2921b72e5e310a
         with:
           upload: true
+          category: bboard-ui
