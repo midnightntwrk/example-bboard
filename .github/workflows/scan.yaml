@@ -30,6 +30,6 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  #v6.0.1
 
       - name: Scan code
-        uses: midnightntwrk/upload-sarif-github-action/scan@a63dd1503791b3b0f3328ed995af737b6f2718a7
+        uses: midnightntwrk/upload-sarif-github-action/scan@975bd0c0bbdaeda82bcfa3f10bae7972729eb2f8
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
