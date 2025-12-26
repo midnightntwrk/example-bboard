@@ -48,14 +48,12 @@ import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-conf
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import {
-  type BalancedTransaction,
-  type UnbalancedTransaction,
-  createBalancedTx,
+  type BalancedProvingRecipe,
 } from '@midnight-ntwrk/midnight-js-types';
-import { type CoinInfo, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
-import { Transaction as ZswapTransaction } from '@midnight-ntwrk/zswap';
+import { Transaction, type TransactionId, type SignatureEnabled, type Proof, type Binding, type UnprovenTransaction, type FinalizedTransaction } from '@midnight-ntwrk/ledger-v6';
+import { Transaction as ZswapTransaction, NetworkId, type CoinInfo } from '@midnight-ntwrk/zswap';
 import semver from 'semver';
-import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+// import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
 /**
  * An in-progress bulletin board deployment.
@@ -225,31 +223,40 @@ const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => 
   const walletState = await wallet.state();
   const zkConfigPath = window.location.origin; // '../../../contract/src/managed/bboard';
 
-  console.log(`Connecting to wallet with network ID: ${getLedgerNetworkId()}`);
+  // console.log(`Connecting to wallet with network ID: ${getLedgerNetworkId()}`);
+
+  const walletProvider = {
+    getCoinPublicKey: () => walletState.coinPublicKey,
+    getEncryptionPublicKey: () => walletState.encryptionPublicKey,
+    balanceTx(tx: UnprovenTransaction, newCoins: CoinInfo[]): Promise<BalancedProvingRecipe> {
+      return wallet
+        .balanceAndProveTransaction(
+          ZswapTransaction.deserialize(tx.serialize(), NetworkId.TestNet),
+          newCoins,
+        )
+        .then((zswapTx) => Transaction.deserialize<SignatureEnabled, Proof, Binding>('signature', 'proof', 'binding', zswapTx.serialize(NetworkId.TestNet)))
+        .then((tx) => ({
+          type: 'NothingToProve',
+          transaction: tx,
+        }));
+    },
+  };
 
   return {
     privateStateProvider: levelPrivateStateProvider({
       privateStateStoreName: 'bboard-private-state',
+      signingKeyStoreName: 'bboard-signing-key',
+      walletProvider: walletProvider,
     }),
     zkConfigProvider: new FetchZkConfigProvider<BBoardCircuitKeys>(zkConfigPath, fetch.bind(window)),
     proofProvider: httpClientProofProvider(uris.proverServerUri),
     publicDataProvider: indexerPublicDataProvider(uris.indexerUri, uris.indexerWsUri),
-    walletProvider: {
-      coinPublicKey: walletState.coinPublicKey,
-      encryptionPublicKey: walletState.encryptionPublicKey,
-      balanceTx(tx: UnbalancedTransaction, newCoins: CoinInfo[]): Promise<BalancedTransaction> {
-        return wallet
-          .balanceAndProveTransaction(
-            ZswapTransaction.deserialize(tx.serialize(getLedgerNetworkId()), getZswapNetworkId()),
-            newCoins,
-          )
-          .then((zswapTx) => Transaction.deserialize(zswapTx.serialize(getZswapNetworkId()), getLedgerNetworkId()))
-          .then(createBalancedTx);
-      },
-    },
+    walletProvider: walletProvider,
     midnightProvider: {
-      submitTx(tx: BalancedTransaction): Promise<TransactionId> {
-        return wallet.submitTransaction(tx);
+      submitTx(tx: FinalizedTransaction): Promise<TransactionId> {
+        return wallet.submitTransaction(
+          ZswapTransaction.deserialize(tx.serialize(), NetworkId.TestNet)
+        );
       },
     },
   };

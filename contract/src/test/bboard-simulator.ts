@@ -18,13 +18,13 @@ import {
   QueryContext,
   sampleContractAddress,
   constructorContext,
-  convert_bigint_to_Uint8Array,
 } from "@midnight-ntwrk/compact-runtime";
+import { convert_bigint_to_Uint8Array } from "./utils.js";
 import {
   Contract,
   type Ledger,
   ledger,
-} from "../managed/bboard/contract/index.cjs";
+} from "../managed/bboard/contract/index.js";
 import { type BBoardPrivateState, witnesses } from "../witnesses.js";
 
 /**

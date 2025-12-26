@@ -30,3 +30,12 @@ export const randomBytes = (length: number): Uint8Array => {
   crypto.getRandomValues(bytes);
   return bytes;
 };
+
+export function convert_bigint_to_Uint8Array(len: number, value: bigint): Uint8Array {
+  const buf = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    buf[len - 1 - i] = Number(value & 0xffn);
+    value >>= 8n;
+  }
+  return buf;
+}

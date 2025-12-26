@@ -3,7 +3,7 @@
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
-A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
+A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on preview network. Users can post a single message at a time, and only the message author can remove it.
 
 ## Project Structure
 
@@ -129,7 +129,7 @@ docker ps
 ### Run the CLI
 
 ```bash
-npm run testnet-remote
+npm run preview-remote
 ```
 
 ### Using the CLI
@@ -152,7 +152,7 @@ Your wallet address is: mn_shield-addr_test1...
 Before deploying contracts, you need testnet tokens.
 
 1. Copy your wallet address from the output above
-2. Visit the [testnet faucet](https://midnight.network/test-faucet)
+2. Visit the [preview faucet](https://faucet.preview.midnight.network)
 3. Paste your address and request funds
 4. Wait for the CLI to detect the funds (takes 2-3 minutes)
 
@@ -224,7 +224,7 @@ The UI will be available at:
 
 ## Useful Links
 
-- [Testnet Faucet](https://midnight.network/test-faucet) - Get testnet funds (CLI auto-funds)
+- [Preview Faucet](https://faucet.preview.midnight.network) - Get preview funds (CLI auto-funds)
 - [Midnight Documentation](https://docs.midnight.network/develop/tutorial/building) - Complete developer guide
 - [Compact Language Guide](https://docs.midnight.network/develop/reference/compact/writing) - Smart contract language reference
 - [Lace Wallet](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) - Browser wallet for Midnight
