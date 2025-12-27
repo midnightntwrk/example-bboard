@@ -13,5 +13,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export * from "./managed/bboard/contract/index.cjs";
+export * from "./managed/bboard/contract/index.js";
 export * from "./witnesses";

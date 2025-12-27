@@ -14,60 +14,64 @@
 // limitations under the License.
 
 import path from 'node:path';
-import { NetworkId, setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import {
+  EnvironmentConfiguration,
+  getTestEnvironment,
+  RemoteTestEnvironment,
+  TestEnvironment,
+} from '@midnight-ntwrk/testkit-js';
+import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { Logger } from 'pino';
 
 export interface Config {
   readonly privateStateStoreName: string;
   readonly logDir: string;
   readonly zkConfigPath: string;
-  readonly indexer: string;
-  readonly indexerWS: string;
-  readonly node: string;
-  readonly proofServer: string;
-
-  setNetworkId: () => void;
+  getEnvironment(logger: Logger): TestEnvironment;
+  readonly requestFaucetTokens: boolean;
+  readonly generateDust: boolean;
 }
 
 export const currentDir = path.resolve(new URL(import.meta.url).pathname, '..');
 
-export class TestnetLocalConfig implements Config {
-  privateStateStoreName = 'bboard-private-state';
-  logDir = path.resolve(currentDir, '..', 'logs', 'testnet-local', `${new Date().toISOString()}.log`);
-  zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
-  indexer = 'http://127.0.0.1:8088/api/v1/graphql';
-  indexerWS = 'ws://127.0.0.1:8088/api/v1/graphql/ws';
-  node = 'http://127.0.0.1:9944';
-  proofServer = 'http://127.0.0.1:6300';
-
-  setNetworkId() {
-    setNetworkId(NetworkId.TestNet);
-  }
-}
-
 export class StandaloneConfig implements Config {
+  getEnvironment(logger: Logger): TestEnvironment {
+    return getTestEnvironment(logger);
+  }
   privateStateStoreName = 'bboard-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'standalone', `${new Date().toISOString()}.log`);
   zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
-  indexer = 'http://127.0.0.1:8088/api/v1/graphql';
-  indexerWS = 'ws://127.0.0.1:8088/api/v1/graphql/ws';
-  node = 'http://127.0.0.1:9944';
-  proofServer = 'http://127.0.0.1:6300';
-
-  setNetworkId() {
-    setNetworkId(NetworkId.Undeployed);
-  }
+  requestFaucetTokens = false;
+  generateDust = false;
 }
 
-export class TestnetRemoteConfig implements Config {
+export class PreviewRemoteConfig implements Config {
+  getEnvironment(logger: Logger): TestEnvironment {
+    setNetworkId('preview');
+    return new PreviewTestEnvironment(logger);
+  }
   privateStateStoreName = 'bboard-private-state';
-  logDir = path.resolve(currentDir, '..', 'logs', 'testnet-remote', `${new Date().toISOString()}.log`);
+  logDir = path.resolve(currentDir, '..', 'logs', 'preview-remote', `${new Date().toISOString()}.log`);
   zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
-  indexer = 'https://indexer.testnet-02.midnight.network/api/v1/graphql';
-  indexerWS = 'wss://indexer.testnet-02.midnight.network/api/v1/graphql/ws';
-  node = 'https://rpc.testnet-02.midnight.network';
-  proofServer = 'http://127.0.0.1:6300';
+  requestFaucetTokens = false; // Faucet not available via API, gives 500 error
+  generateDust = true;
+}
 
-  setNetworkId() {
-    setNetworkId(NetworkId.TestNet);
+export class PreviewTestEnvironment extends RemoteTestEnvironment {
+  constructor(logger: Logger) {
+    super(logger);
+  }
+
+  getEnvironmentConfiguration(): EnvironmentConfiguration {
+    return {
+      walletNetworkId: 'preview',
+      networkId: 'preview',
+      indexer: 'https://indexer.preview.midnight.network/api/v3/graphql',
+      indexerWS: 'wss://indexer.preview.midnight.network/api/v3/graphql/ws',
+      node: 'https://rpc.preview.midnight.network',
+      nodeWS: 'wss://rpc.preview.midnight.network',
+      faucet: 'https://faucet.preview.midnight.network/api/request-tokens',
+      proofServer: this.proofServerContainer?.getUrl(),
+    };
   }
 }

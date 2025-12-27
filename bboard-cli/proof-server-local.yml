@@ -1,9 +1,9 @@
 services:
   proof-server:
     image: "bricktowers/proof-server:6.1.0-alpha.6"
-    container_name: "proof-server_$TESTCONTAINERS_UID"
+    container_name: "proof-server-local"
     ports:
-      - "0:6300"
+      - "6300:6300"
     environment:
       EXTRA_ARGS: -v
       RUST_BACKTRACE: "full"
