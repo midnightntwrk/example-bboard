@@ -39,12 +39,12 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Install compactc
-        env:
-          COMPACT_VERSION: 0.24.0
         run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-          compact update $COMPACT_VERSION
-          compact compile --version
+          curl -L -o compactc.zip https://raw.githubusercontent.com/midnightntwrk/compact/main/prerelease/compactc-0.27/compactc_v0.27.0-rc.1_x86_64-unknown-linux-musl.zip
+          unzip compactc.zip
+          chmod +x compactc
+          sudo mv compactc /usr/local/bin/
+          compactc --version
 
       - name: Compile and test contract
         working-directory: contract
