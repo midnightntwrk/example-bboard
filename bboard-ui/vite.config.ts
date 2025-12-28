@@ -29,7 +29,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Separate chunk for WASM modules to avoid top-level await issues
-          wasm: ['@midnight-ntwrk/onchain-runtime'],
+          wasm: ['@midnight-ntwrk/onchain-runtime-v1'],
         },
       },
     },
@@ -56,7 +56,7 @@ export default defineConfig({
       resolveId(source, importer) {
         // Special handling for the problematic module
         if (
-          source === '@midnight-ntwrk/onchain-runtime' &&
+          source === '@midnight-ntwrk/onchain-runtime-v1' &&
           importer &&
           importer.includes('@midnight-ntwrk/compact-runtime')
         ) {
@@ -86,9 +86,9 @@ export default defineConfig({
     include: ['@midnight-ntwrk/compact-runtime'],
     // Exclude WASM files and modules with top-level await from optimization
     exclude: [
-      '@midnight-ntwrk/onchain-runtime',
-      '@midnight-ntwrk/onchain-runtime/midnight_onchain_runtime_wasm_bg.wasm',
-      '@midnight-ntwrk/onchain-runtime/midnight_onchain_runtime_wasm.js',
+      '@midnight-ntwrk/onchain-runtime-v1',
+      '@midnight-ntwrk/onchain-runtime-v1/midnight_onchain_runtime_wasm_bg.wasm',
+      '@midnight-ntwrk/onchain-runtime-v1/midnight_onchain_runtime_wasm.js',
     ],
   },
   define: {},
