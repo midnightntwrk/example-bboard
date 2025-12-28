@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  #v6.0.1
 
       - name: Setup Compact Compiler
-        uses: midnightntwrk/setup-compact-action@4130145456ad3f45934788dd4a65647eb283e658
+        uses: midnightntwrk/setup-compact-action@836895c8fffbbea6bd986af2b17e8941ff29d1f8
         with:
           compact-version: '0.24.0'
 
