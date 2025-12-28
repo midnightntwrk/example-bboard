@@ -6,9 +6,7 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  # needed to stop rate limiting of compact download.
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+permissions: {}
 
 jobs:
   install-and-test:
@@ -18,6 +16,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  #v6.0.1
+
+      - name: Setup Compact Compiler
+        uses: midnightntwrk/setup-compact-action@836895c8fffbbea6bd986af2b17e8941ff29d1f8
+        with:
+          compact-version: '0.24.0'
 
       - name: Install Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f  #v6.1.0
@@ -37,14 +40,6 @@ jobs:
       # https://github.com/Menci/vite-plugin-wasm/pull/73
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
-      - name: Install compactc
-        env:
-          COMPACT_VERSION: 0.24.0
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-          compact update $COMPACT_VERSION
-          compact compile --version
 
       - name: Compile and test contract
         working-directory: contract
