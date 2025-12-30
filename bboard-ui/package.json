@@ -27,7 +27,7 @@
     "react-router-dom": "7.11.0"
   },
   "devDependencies": {
-    "@swc/core": "^1.15.7",
+    "@swc/core": "^1.15.8",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
