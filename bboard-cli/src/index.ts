@@ -36,18 +36,16 @@ import {
   type PrivateStateId,
   bboardPrivateStateKey,
 } from '../../api/src/index';
-import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.cjs';
+import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.js';
 import {
-  type BalancedTransaction,
-  createBalancedTx,
   type MidnightProvider,
-  type UnbalancedTransaction,
   type WalletProvider,
+  type BalancedProvingRecipe,
 } from '@midnight-ntwrk/midnight-js-types';
 import { type Wallet } from '@midnight-ntwrk/wallet-api';
 import * as Rx from 'rxjs';
-import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
-import { Transaction as ZswapTransaction } from '@midnight-ntwrk/zswap';
+import { nativeToken, Transaction, type TransactionId, type UnprovenTransaction, type FinalizedTransaction, type SignatureEnabled, type Proof, type Binding } from '@midnight-ntwrk/ledger-v6';
+import { Transaction as ZswapTransaction, NetworkId, type CoinInfo } from '@midnight-ntwrk/zswap';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { type Resource, WalletBuilder } from '@midnight-ntwrk/wallet';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
@@ -58,7 +56,6 @@ import type { StartedDockerComposeEnvironment, DockerComposeEnvironment } from '
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { toHex, assertIsContractAddress } from '@midnight-ntwrk/midnight-js-utils';
-import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
@@ -247,20 +244,25 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
 const createWalletAndMidnightProvider = async (wallet: Wallet): Promise<WalletProvider & MidnightProvider> => {
   const state = await Rx.firstValueFrom(wallet.state());
   return {
-    coinPublicKey: state.coinPublicKey,
-    encryptionPublicKey: state.encryptionPublicKey,
-    balanceTx(tx: UnbalancedTransaction, newCoins: CoinInfo[]): Promise<BalancedTransaction> {
+    getCoinPublicKey: () => state.coinPublicKey,
+    getEncryptionPublicKey: () => state.encryptionPublicKey,
+    balanceTx(tx: UnprovenTransaction, newCoins: CoinInfo[]): Promise<BalancedProvingRecipe> {
       return wallet
         .balanceTransaction(
-          ZswapTransaction.deserialize(tx.serialize(getLedgerNetworkId()), getZswapNetworkId()),
+          ZswapTransaction.deserialize(tx.serialize(), NetworkId.TestNet),
           newCoins,
         )
         .then((tx) => wallet.proveTransaction(tx))
-        .then((zswapTx) => Transaction.deserialize(zswapTx.serialize(getZswapNetworkId()), getLedgerNetworkId()))
-        .then(createBalancedTx);
+        .then((zswapTx) => Transaction.deserialize<SignatureEnabled, Proof, Binding>('signature', 'proof', 'binding', zswapTx.serialize(NetworkId.TestNet)))
+        .then((tx) => ({
+          type: 'NothingToProve',
+          transaction: tx,
+        }));
     },
-    submitTx(tx: BalancedTransaction): Promise<TransactionId> {
-      return wallet.submitTransaction(tx);
+    submitTx(tx: FinalizedTransaction): Promise<TransactionId> {
+      return wallet.submitTransaction(
+        ZswapTransaction.deserialize(tx.serialize(), NetworkId.TestNet)
+      );
     },
   };
 };
@@ -289,7 +291,7 @@ const waitForFunds = (wallet: Wallet, logger: Logger) =>
         const total = typeof state.syncProgress?.lag?.applyGap === 'bigint' ? state.syncProgress.lag.applyGap : 1_000n;
         return total - synced < 100n;
       }),
-      Rx.map((s) => s.balances[nativeToken()] ?? 0n),
+      Rx.map((s) => s.balances[nativeToken().raw] ?? 0n),
       Rx.filter((balance) => balance > 0n),
     ),
   );
@@ -312,14 +314,14 @@ const buildWalletAndWaitForFunds = async (
     proofServer,
     node,
     seed,
-    getZswapNetworkId(),
+    NetworkId.TestNet,
     'warn',
   );
   wallet.start();
   const state = await Rx.firstValueFrom(wallet.state());
   logger.info(`Your wallet seed is: ${seed}`);
   logger.info(`Your wallet address is: ${state.address}`);
-  let balance = state.balances[nativeToken()];
+  let balance = state.balances[nativeToken().raw];
   if (balance === undefined || balance === 0n) {
     logger.info(`Your wallet balance is: 0`);
     logger.info(`Waiting to receive tokens...`);
@@ -414,6 +416,8 @@ export const run = async (config: Config, logger: Logger, dockerEnv?: DockerComp
       const providers = {
         privateStateProvider: levelPrivateStateProvider<PrivateStateId>({
           privateStateStoreName: config.privateStateStoreName,
+          signingKeyStoreName: 'bboard-signing-key',
+          walletProvider: walletAndMidnightProvider,
         }),
         publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
         zkConfigProvider: new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath),
