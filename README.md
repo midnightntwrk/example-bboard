@@ -111,21 +111,6 @@ cd ..
 
 ## Option 1: CLI Interface
 
-### Start the Proof Server
-
-The proof server must be running before using the CLI to generate zero-knowledge proofs for transactions:
-
-```bash
-cd bboard-cli
-docker compose -f proof-server-testnet.yml up -d
-```
-
-Verify it's running:
-
-```bash
-docker ps
-```
-
 ### Run the CLI
 
 ```bash
@@ -272,7 +257,7 @@ This repository contains several workarounds required due to current limitations
   Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.
 
 - **Transaction fee configuration**  
-  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from 'midnight-testkit-js' prevents transaction creation due to insufficient funds. It is overridden and set to `1_000n`.
+  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from 'midnight-testkit-js' is required on the Undeployed network (lower values fail with `BalanceCheckOverspend` on the `midnight-node` side). On the Preview network, that high overhead prevents transaction creation because it requires a large amount of dust, so it is overridden and set to `1_000n`. The root cause is not yet clear.
 
 - **LevelDB private state provider**  
   The `levelDbPrivateStateProvider`, shipped with Node.js dependencies, does not work in browser environments. An in-memory private state provider is used instead; the implementation is copied from `midnight-js`.

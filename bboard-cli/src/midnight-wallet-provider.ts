@@ -34,12 +34,7 @@ import type { Logger } from 'pino';
 
 import { getInitialShieldedState } from './wallet-utils';
 import { DustWalletOptions, EnvironmentConfiguration, FluentWalletBuilder } from '@midnight-ntwrk/testkit-js';
-
-export const DEFAULT_DUST_OPTIONS: DustWalletOptions = {
-  ledgerParams: LedgerParameters.initialParameters(),
-  additionalFeeOverhead: 1_000n, // changed midnight-js code FROM 500_000_000_000_000_000n TO 1000n
-  feeBlocksMargin: 5,
-};
+import { NetworkId } from '@midnight-ntwrk/wallet-sdk-abstractions';
 
 /**
  * Provider class that implements wallet functionality for the Midnight network.
@@ -97,7 +92,18 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
   }
 
   static async build(logger: Logger, env: EnvironmentConfiguration, seed?: string): Promise<MidnightWalletProvider> {
-    const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(DEFAULT_DUST_OPTIONS);
+    const DEFAULT_DUST_OPTIONS: DustWalletOptions = {
+      ledgerParams: LedgerParameters.initialParameters(),
+      additionalFeeOverhead: 1_000n, // changed midnight-js code FROM 500_000_000_000_000_000n TO 1000n
+      feeBlocksMargin: 5,
+    };
+    const dustOptions = {
+      ...DEFAULT_DUST_OPTIONS,
+    };
+    if (env.walletNetworkId === NetworkId.NetworkId.Undeployed) {
+      dustOptions['additionalFeeOverhead'] = 500_000_000_000_000_000n;
+    }
+    const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);
     const { wallet, seeds } = seed
       ? await builder.withSeed(seed).buildWithoutStarting()
       : await builder.withRandomSeed().buildWithoutStarting();
@@ -114,15 +120,5 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       ZswapSecretKeys.fromSeed(seeds.shielded),
       DustSecretKey.fromSeed(seeds.dust),
     );
-  }
-
-  static async withWallet(
-    logger: Logger,
-    env: EnvironmentConfiguration,
-    wallet: WalletFacade,
-    zswapSecretKeys: ZswapSecretKeys,
-    dustSecretKey: DustSecretKey,
-  ): Promise<MidnightWalletProvider> {
-    return new MidnightWalletProvider(logger, env, wallet, zswapSecretKeys, dustSecretKey);
   }
 }

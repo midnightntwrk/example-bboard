@@ -20,7 +20,7 @@ services:
       node:
         condition: service_started
   node:
-    image: 'ghcr.io/midnight-ntwrk/midnight-node:0.18.0-rc.10'
+    image: 'midnightntwrk/midnight-node:0.18.0-rc.9'
     container_name: 'node_$TESTCONTAINERS_UID'
     ports:
       - "9944"
