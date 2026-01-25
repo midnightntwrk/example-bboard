@@ -23,7 +23,7 @@ import contractModule from '../../contract/src/managed/bboard/contract/index.cjs
 const { Contract, ledger, pureCircuits, State } = contractModule;
 // import { Contract, ledger, pureCircuits, State } from '../../contract/src/index';
 
-import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
 import {
   type BBoardDerivedState,
@@ -38,6 +38,16 @@ import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
+
+// Helper to replace removed convert_bigint_to_Uint8Array
+const bigintToBytes32 = (value: bigint): Uint8Array => {
+  const bytes = new Uint8Array(32);
+  for (let i = 31; i >= 0; i--) {
+    bytes[i] = Number(value & 0xffn);
+    value >>= 8n;
+  }
+  return bytes;
+};
 
 /** @internal */
 const bboardContractInstance: BBoardContract = new Contract(witnesses);
@@ -105,7 +115,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
       (ledgerState, privateState) => {
         const hashedSecretKey = pureCircuits.publicKey(
           privateState.secretKey,
-          convert_bigint_to_Uint8Array(32, ledgerState.sequence),
+          bigintToBytes32(ledgerState.sequence),
         );
 
         return {

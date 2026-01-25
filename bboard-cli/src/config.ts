@@ -71,3 +71,17 @@ export class TestnetRemoteConfig implements Config {
     setNetworkId(NetworkId.TestNet);
   }
 }
+
+export class PreviewConfig implements Config {
+  privateStateStoreName = 'bboard-private-state';
+  logDir = path.resolve(currentDir, '..', 'logs', 'preview', `${new Date().toISOString()}.log`);
+  zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
+  indexer = 'https://indexer.preview.midnight.network/api/v3/graphql';
+  indexerWS = 'wss://indexer.preview.midnight.network/api/v3/graphql';
+  node = 'https://rpc.preview.midnight.network';
+  proofServer = 'http://127.0.0.1:6300';
+
+  setNetworkId() {
+    setNetworkId(NetworkId.TestNet);  // Using TestNet enum with Preview URLs
+  }
+}
