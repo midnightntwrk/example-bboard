@@ -22,7 +22,7 @@ import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
 import { State } from "../managed/bboard/contract/index.js";
 
-setNetworkId('undeployed' as NetworkId);
+setNetworkId("undeployed" as NetworkId);
 
 describe("BBoard smart contract", () => {
   it("generates initial ledger state deterministically", () => {
