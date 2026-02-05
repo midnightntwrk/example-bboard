@@ -19,7 +19,7 @@ import {
   sampleContractAddress,
   convertFieldToBytes,
   createConstructorContext,
-  CostModel
+  CostModel,
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
@@ -42,16 +42,16 @@ export class BBoardSimulator {
       currentContractState,
       currentZswapLocalState,
     } = this.contract.initialState(
-       createConstructorContext({ secretKey }, "0".repeat(64)),
+      createConstructorContext({ secretKey }, "0".repeat(64)),
     );
     this.circuitContext = {
       currentPrivateState,
       currentZswapLocalState,
       costModel: CostModel.initialCostModel(),
       currentQueryContext: new QueryContext(
-          currentContractState.data,
-          sampleContractAddress()
-      )
+        currentContractState.data,
+        sampleContractAddress(),
+      ),
     };
   }
 
@@ -94,7 +94,7 @@ export class BBoardSimulator {
     const sequence = convertFieldToBytes(
       32,
       this.getLedger().sequence,
-        'bboard-simulator.ts'
+      "bboard-simulator.ts",
     );
     return this.contract.circuits.publicKey(
       this.circuitContext,
