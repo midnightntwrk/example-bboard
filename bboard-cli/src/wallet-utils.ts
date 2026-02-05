@@ -14,7 +14,7 @@
  */
 
 import { UnshieldedTokenType } from '@midnight-ntwrk/ledger-v7';
-import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
+import { type FacadeState, type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import { ShieldedWallet } from '@midnight-ntwrk/wallet-sdk-shielded';
 import { type UnshieldedWallet, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
 import * as Rx from 'rxjs';
@@ -42,35 +42,49 @@ export const getInitialUnshieldedState = async (logger: Logger, wallet: Unshield
   return Rx.firstValueFrom(wallet.state);
 };
 
+const isProgressStrictlyComplete = (progress: unknown): boolean => {
+  if (!progress || typeof progress !== 'object') {
+    return false;
+  }
+  const candidate = progress as { isStrictlyComplete?: unknown };
+  if (typeof candidate.isStrictlyComplete !== 'function') {
+    return false;
+  }
+  return (candidate.isStrictlyComplete as () => boolean)();
+};
+
 export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000, timeout = 90_000) => {
   logger.info('Syncing wallet...');
 
   return Rx.firstValueFrom(
     wallet.state().pipe(
-      Rx.tap((state) => {
+      Rx.tap((state: FacadeState) => {
+        const shieldedSynced = isProgressStrictlyComplete(state.shielded.state.progress);
+        const unshieldedSynced = isProgressStrictlyComplete(state.unshielded.progress);
+        const dustSynced = isProgressStrictlyComplete(state.dust.state.progress);
         logger.debug(
-          `Wallet synced state emission: { shielded=${state.shielded.state.progress.isStrictlyComplete()}, unshielded=${state.unshielded.progress.isStrictlyComplete()}, dust=${state.dust.state.progress.isStrictlyComplete()} }`,
+          `Wallet synced state emission: { shielded=${shieldedSynced}, unshielded=${unshieldedSynced}, dust=${dustSynced} }`,
         );
       }),
       Rx.throttleTime(throttleTime),
-      Rx.tap((state) => {
-        const isSynced =
-          state.shielded.state.progress.isStrictlyComplete() &&
-          state.dust.state.progress.isStrictlyComplete() &&
-          state.unshielded.progress?.isStrictlyComplete() === true;
+      Rx.tap((state: FacadeState) => {
+        const shieldedSynced = isProgressStrictlyComplete(state.shielded.state.progress);
+        const unshieldedSynced = isProgressStrictlyComplete(state.unshielded.progress);
+        const dustSynced = isProgressStrictlyComplete(state.dust.state.progress);
+        const isSynced = shieldedSynced && dustSynced && unshieldedSynced;
 
         logger.debug(
-          `Wallet synced state emission (synced=${isSynced}): { shielded=${state.shielded.state.progress.isStrictlyComplete()}, unshielded=${state.unshielded.progress.isStrictlyComplete()}, dust=${state.dust.state.progress.isStrictlyComplete()} }`,
+          `Wallet synced state emission (synced=${isSynced}): { shielded=${shieldedSynced}, unshielded=${unshieldedSynced}, dust=${dustSynced} }`,
         );
       }),
       Rx.filter(
-        (state) =>
-          state.shielded.state.progress.isStrictlyComplete() &&
-          state.dust.state.progress.isStrictlyComplete() &&
-          state.unshielded.progress.isStrictlyComplete() === true,
+        (state: FacadeState) =>
+          isProgressStrictlyComplete(state.shielded.state.progress) &&
+          isProgressStrictlyComplete(state.dust.state.progress) &&
+          isProgressStrictlyComplete(state.unshielded.progress),
       ),
       Rx.tap(() => logger.info('Sync complete')),
-      Rx.tap((state) => {
+      Rx.tap((state: FacadeState) => {
         const shieldedBalances = state.shielded.balances || {};
         const unshieldedBalances = state.unshielded.balances || {};
         const dustBalances = state.dust.walletBalance(new Date(Date.now())) || 0n;

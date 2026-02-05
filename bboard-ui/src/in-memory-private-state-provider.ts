@@ -23,7 +23,10 @@ import { type PrivateStateId, type PrivateStateProvider } from '@midnight-ntwrk/
  * @template PS - Type of the private state.
  * @returns {PrivateStateProvider<PSI, PS>} An in-memory private state provider.
  */
-export const inMemoryPrivateStateProvider = <PSI extends PrivateStateId, PS = any>(): PrivateStateProvider<PSI, PS> => {
+export const inMemoryPrivateStateProvider = <PSI extends PrivateStateId, PS = unknown>(): PrivateStateProvider<
+  PSI,
+  PS
+> => {
   const record = new Map<PSI, PS>();
   const signingKeys = {} as Record<ContractAddress, SigningKey>;
 

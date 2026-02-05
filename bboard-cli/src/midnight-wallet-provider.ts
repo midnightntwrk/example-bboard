@@ -99,9 +99,13 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       dustOptions['additionalFeeOverhead'] = 500_000_000_000_000_000n;
     }
     const builder = FluentWalletBuilder.forEnvironment(env).withDustOptions(dustOptions);
-    const { wallet, seeds } = seed
+    const buildResult = seed
       ? await builder.withSeed(seed).buildWithoutStarting()
       : await builder.withRandomSeed().buildWithoutStarting();
+    const { wallet, seeds } = buildResult as {
+      wallet: WalletFacade;
+      seeds: { masterSeed: string; shielded: Uint8Array; dust: Uint8Array };
+    };
 
     const initialState = await getInitialShieldedState(logger, wallet.shielded);
     logger.info(
