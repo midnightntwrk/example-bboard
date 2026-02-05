@@ -19,7 +19,7 @@ import {
   type BBoardProviders,
   type DeployedBBoardAPI,
 } from '../../../api/src/index';
-import { type ContractAddress, fromHex, ShieldedCoinInfo, toHex } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress, fromHex, toHex } from '@midnight-ntwrk/compact-runtime';
 import {
   BehaviorSubject,
   catchError,
@@ -43,18 +43,17 @@ import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import semver from 'semver';
 import {
+  Binding,
   FinalizedTransaction,
-  PreBinding,
-  PreProof,
+  Proof,
   SignatureEnabled,
   Transaction,
   TransactionId,
-  UnprovenTransaction,
-} from '@midnight-ntwrk/ledger-v6';
-import { BalancedProvingRecipe } from '@midnight-ntwrk/midnight-js-types';
+} from '@midnight-ntwrk/ledger-v7';
 import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 
 /**
  * An in-progress bulletin board deployment.
@@ -230,7 +229,7 @@ const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => 
   return {
     privateStateProvider: inMemoryBBoardPrivateStateProvider,
     zkConfigProvider: keyMaterialProvider,
-    proofProvider: httpClientProofProvider(config.proverServerUri!),
+    proofProvider: httpClientProofProvider(config.proverServerUri!, keyMaterialProvider),
     publicDataProvider: indexerPublicDataProvider(config.indexerUri, config.indexerWsUri),
     walletProvider: {
       getCoinPublicKey(): string {
@@ -239,24 +238,17 @@ const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => 
       getEncryptionPublicKey(): string {
         return shieldedAddresses.shieldedEncryptionPublicKey;
       },
-      balanceTx: async (
-        tx: UnprovenTransaction,
-        newCoins?: ShieldedCoinInfo[],
-        ttl?: Date,
-      ): Promise<BalancedProvingRecipe> => {
+      balanceTx: async (tx: UnboundTransaction, ttl?: Date): Promise<FinalizedTransaction> => {
         try {
-          logger.info({ tx, newCoins, ttl }, 'Balancing transaction via wallet');
+          logger.info({ tx, ttl }, 'Balancing transaction via wallet');
           const serializedTx = toHex(tx.serialize());
           const received = await connectedAPI.balanceUnsealedTransaction(serializedTx);
-          const transaction: Transaction<SignatureEnabled, PreProof, PreBinding> = Transaction.deserialize<
-            SignatureEnabled,
-            PreProof,
-            PreBinding
-          >('signature', 'pre-proof', 'pre-binding', fromHex(received.tx));
-          return {
-            type: 'TransactionToProve',
-            transaction: transaction,
-          };
+          return Transaction.deserialize<SignatureEnabled, Proof, Binding>(
+            'signature',
+            'proof',
+            'binding',
+            fromHex(received.tx),
+          );
         } catch (e) {
           logger.error({ error: e }, 'Error balancing transaction via wallet');
           throw e;

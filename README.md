@@ -1,6 +1,6 @@
 # Bulletin Board DApp
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.28.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
@@ -114,7 +114,7 @@ cd ..
 ### Run the CLI
 
 ```bash
-npm run preview-remote
+npm run preprod-remote
 ```
 
 ### Using the CLI
@@ -129,7 +129,7 @@ Expected output:
 
 ```
 Your wallet seed is: [64-character hex string]
-Using unshielded address: mn_addr_preview1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlxpwflz3fxdykaesrw0ln4 waiting for funds...
+Using unshielded address: mn_addr_preprod1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlxpwflz3fxdykaesrw0ln4 waiting for funds...
 ```
 
 #### Fund Your Wallet
@@ -137,7 +137,7 @@ Using unshielded address: mn_addr_preview1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlx
 Before deploying contracts, you need testnet tokens.
 
 1. Copy your wallet address from the output above
-2. Visit the [faucet](https://faucet.preview.midnight.network/)
+2. Visit the [faucet](https://faucet.preprod.midnight.network/)
 3. Paste your address and request funds
 4. Wait for the CLI to detect the funds (takes 2-3 minutes)
 
@@ -191,9 +191,11 @@ docker ps
 
 ### Start the Web Interface
 
+The UI can run against preprod, preview, or undeployed networks. Configure the target in `bboard-ui/.env.preprod` before starting.
+
 ```bash
 cd bboard-ui
-npm run start
+npm run build:start
 ```
 
 The UI will be available at:
@@ -240,18 +242,9 @@ The UI will be available at:
 
 This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
 
-- **Private npm dependencies**  
-  npm is configured to resolve packages from private GitHub @midnight-ntwrk repository because some libraries are not publicly available.
-
 - **Proof server (ARM64 compatibility)**  
   The upstream proof server does not run on `arm64`. A patched version is used instead:  
-  `bricktowers/proof-server:6.1.0-alpha.6`.
-
-- **Compact compiler availability**  
-  Compact compiler tools are not available for the latest compact. `compactc` (version is **v0.27.0**) must be installed globally or otherwise available on `$PATH`.
-
-- **`midnight-testkit-js` (private package)**  
-  `midnight-testkit-js` is not publicly available. The package is built from source and linked locally.
+  `bricktowers/proof-server:7.0.0`.
 
 - **Modified testkit sources**  
   Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.

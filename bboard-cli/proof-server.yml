@@ -1,6 +1,6 @@
 services:
   proof-server:
-    image: "bricktowers/proof-server:6.1.0-alpha.6"
+    image: 'bricktowers/proof-server:7.0.0'
     container_name: "proof-server_$TESTCONTAINERS_UID"
     ports:
       - "0:6300"

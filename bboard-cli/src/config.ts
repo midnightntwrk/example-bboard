@@ -57,6 +57,18 @@ export class PreviewRemoteConfig implements Config {
   generateDust = true;
 }
 
+export class PreprodRemoteConfig implements Config {
+  getEnvironment(logger: Logger): TestEnvironment {
+    setNetworkId('preprod');
+    return new PreprodTestEnvironment(logger);
+  }
+  privateStateStoreName = 'bboard-private-state';
+  logDir = path.resolve(currentDir, '..', 'logs', 'preprod-remote', `${new Date().toISOString()}.log`);
+  zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
+  requestFaucetTokens = false; // Faucet not available via API, gives 500 error
+  generateDust = true;
+}
+
 export class PreviewTestEnvironment extends RemoteTestEnvironment {
   constructor(logger: Logger) {
     super(logger);
@@ -71,6 +83,25 @@ export class PreviewTestEnvironment extends RemoteTestEnvironment {
       node: 'https://rpc.preview.midnight.network',
       nodeWS: 'wss://rpc.preview.midnight.network',
       faucet: 'https://faucet.preview.midnight.network/api/request-tokens',
+      proofServer: this.proofServerContainer?.getUrl(),
+    };
+  }
+}
+
+export class PreprodTestEnvironment extends RemoteTestEnvironment {
+  constructor(logger: Logger) {
+    super(logger);
+  }
+
+  getEnvironmentConfiguration(): EnvironmentConfiguration {
+    return {
+      walletNetworkId: 'preprod',
+      networkId: 'preprod',
+      indexer: 'https://indexer.preprod.midnight.network/api/v3/graphql',
+      indexerWS: 'wss://indexer.preprod.midnight.network/api/v3/graphql/ws',
+      node: 'https://rpc.preprod.midnight.network',
+      nodeWS: 'wss://rpc.preprod.midnight.network',
+      faucet: 'https://faucet.preprod.midnight.network/api/request-tokens',
       proofServer: this.proofServerContainer?.getUrl(),
     };
   }

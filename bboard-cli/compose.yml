@@ -1,12 +1,12 @@
 services:
   proof-server:
-    image: "bricktowers/proof-server:6.1.0-alpha.6"
+    image: 'bricktowers/proof-server:7.0.0'
     container_name: "proof-server_$TESTCONTAINERS_UID"
     ports:
       - "6300"
 
   indexer:
-    image: "midnightntwrk/indexer-standalone:3.0.0-alpha.19"
+    image: 'midnightntwrk/indexer-standalone:3.0.0'
     container_name: 'indexer_$TESTCONTAINERS_UID'
     ports:
       - '8088'
@@ -20,7 +20,7 @@ services:
       node:
         condition: service_started
   node:
-    image: 'midnightntwrk/midnight-node:0.18.0-rc.9'
+    image: 'midnightntwrk/midnight-node:0.20.1'
     container_name: 'node_$TESTCONTAINERS_UID'
     ports:
       - "9944"
