@@ -17,14 +17,15 @@ import {
   type CircuitContext,
   QueryContext,
   sampleContractAddress,
-  constructorContext,
-  convert_bigint_to_Uint8Array,
+  convertFieldToBytes,
+  createConstructorContext,
+  CostModel
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
   type Ledger,
   ledger,
-} from "../managed/bboard/contract/index.cjs";
+} from "../managed/bboard/contract/index.js";
 import { type BBoardPrivateState, witnesses } from "../witnesses.js";
 
 /**
@@ -41,16 +42,16 @@ export class BBoardSimulator {
       currentContractState,
       currentZswapLocalState,
     } = this.contract.initialState(
-      constructorContext({ secretKey }, "0".repeat(64)),
+       createConstructorContext({ secretKey }, "0".repeat(64)),
     );
     this.circuitContext = {
       currentPrivateState,
       currentZswapLocalState,
-      originalState: currentContractState,
-      transactionContext: new QueryContext(
-        currentContractState.data,
-        sampleContractAddress(),
-      ),
+      costModel: CostModel.initialCostModel(),
+      currentQueryContext: new QueryContext(
+          currentContractState.data,
+          sampleContractAddress()
+      )
     };
   }
 
@@ -66,7 +67,7 @@ export class BBoardSimulator {
   }
 
   public getLedger(): Ledger {
-    return ledger(this.circuitContext.transactionContext.state);
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 
   public getPrivateState(): BBoardPrivateState {
@@ -79,20 +80,21 @@ export class BBoardSimulator {
       this.circuitContext,
       message,
     ).context;
-    return ledger(this.circuitContext.transactionContext.state);
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 
   public takeDown(): Ledger {
     this.circuitContext = this.contract.impureCircuits.takeDown(
       this.circuitContext,
     ).context;
-    return ledger(this.circuitContext.transactionContext.state);
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 
   public publicKey(): Uint8Array {
-    const sequence = convert_bigint_to_Uint8Array(
+    const sequence = convertFieldToBytes(
       32,
       this.getLedger().sequence,
+        'bboard-simulator.ts'
     );
     return this.contract.circuits.publicKey(
       this.circuitContext,
