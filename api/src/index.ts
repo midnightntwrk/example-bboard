@@ -19,11 +19,10 @@
  * @packageDocumentation
  */
 
-import contractModule from '../../contract/src/managed/bboard/contract/index.cjs';
-const { Contract, ledger, pureCircuits, State } = contractModule;
+import { Contract, ledger, pureCircuits, State } from '../../contract/src/managed/bboard/contract/index.js';
 // import { Contract, ledger, pureCircuits, State } from '../../contract/src/index';
 
-import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
 import {
   type BBoardDerivedState,
@@ -32,7 +31,6 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-// import { Contract, ledger, pureCircuits, State } from '../../contract/src/managed/bboard/contract/index.cjs';
 import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -101,11 +99,11 @@ export class BBoardAPI implements DeployedBBoardAPI {
         //    where the private state is expected to change, we would need to make this an `Observable`.
         from(providers.privateStateProvider.get(bboardPrivateStateKey) as Promise<BBoardPrivateState>),
       ],
-      // ...and combine them to produce the required derived state.
+        // ...and combine them to produce the required derived state.
       (ledgerState, privateState) => {
         const hashedSecretKey = pureCircuits.publicKey(
           privateState.secretKey,
-          convert_bigint_to_Uint8Array(32, ledgerState.sequence),
+          utils.convert_bigint_to_Uint8Array(32, ledgerState.sequence),
         );
 
         return {
