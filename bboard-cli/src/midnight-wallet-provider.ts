@@ -19,15 +19,9 @@ import {
   type EncPublicKey,
   type FinalizedTransaction,
   LedgerParameters,
-  type ShieldedCoinInfo,
-  type UnprovenTransaction,
   ZswapSecretKeys,
-} from '@midnight-ntwrk/ledger-v6';
-import {
-  type BalancedProvingRecipe,
-  type MidnightProvider,
-  type WalletProvider,
-} from '@midnight-ntwrk/midnight-js-types';
+} from '@midnight-ntwrk/ledger-v7';
+import { type MidnightProvider, UnboundTransaction, type WalletProvider } from '@midnight-ntwrk/midnight-js-types';
 import { ttlOneHour } from '@midnight-ntwrk/midnight-js-utils';
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import type { Logger } from 'pino';
@@ -69,12 +63,13 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
     return this.zswapSecretKeys.encryptionPublicKey;
   }
 
-  async balanceTx(
-    tx: UnprovenTransaction,
-    _newCoins: ShieldedCoinInfo[],
-    ttl: Date = ttlOneHour(),
-  ): Promise<BalancedProvingRecipe> {
-    return this.wallet.balanceTransaction(this.zswapSecretKeys, this.dustSecretKey, tx, ttl);
+  async balanceTx(tx: UnboundTransaction, ttl: Date = ttlOneHour()): Promise<FinalizedTransaction> {
+    const recipe = await this.wallet.balanceUnboundTransaction(
+      tx,
+      { shieldedSecretKeys: this.zswapSecretKeys, dustSecretKey: this.dustSecretKey },
+      { ttl },
+    );
+    return await this.wallet.finalizeRecipe(recipe);
   }
 
   submitTx(tx: FinalizedTransaction): Promise<string> {

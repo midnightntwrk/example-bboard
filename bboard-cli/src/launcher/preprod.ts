@@ -13,18 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {CompiledContract} from "@midnight-ntwrk/compact-js";
-export * from "./managed/bboard/contract/index.js";
-export * from "./witnesses";
+import { createLogger } from '../logger-utils.js';
+import { run } from '../index.js';
+import { PreprodRemoteConfig } from '../config.js';
 
-import * as CompiledBBoardContract from "./managed/bboard/contract/index.js";
-import * as Witnesses from './witnesses';
-
-export const CompiledBBoardContractContract =
-    CompiledContract.make<CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>>(
-        'Counter',
-        CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>
-    ).pipe(
-        CompiledContract.withWitnesses(Witnesses.witnesses),
-        CompiledContract.withCompiledFileAssets('./compiled/counter')
-    );
+const config = new PreprodRemoteConfig();
+const logger = await createLogger(config.logDir);
+const testEnvironment = config.getEnvironment(logger);
+await run(config, testEnvironment, logger);

@@ -45,7 +45,7 @@ import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-util
 import { TestEnvironment } from '@midnight-ntwrk/testkit-js';
 import { MidnightWalletProvider } from './midnight-wallet-provider';
 import { randomBytes } from '../../api/src/utils';
-import { unshieldedToken } from '@midnight-ntwrk/ledger-v6';
+import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
 import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
 import { generateDust } from './generate-dust';
 import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
@@ -312,6 +312,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
       }
     }
 
+    const zkConfigProvider = new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath);
     const providers: BBoardProviders = {
       privateStateProvider: levelPrivateStateProvider<PrivateStateId, BBoardPrivateState>({
         privateStateStoreName: config.privateStateStoreName,
@@ -321,8 +322,8 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
         },
       }),
       publicDataProvider: indexerPublicDataProvider(envConfiguration.indexer, envConfiguration.indexerWS),
-      zkConfigProvider: new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath),
-      proofProvider: httpClientProofProvider(envConfiguration.proofServer),
+      zkConfigProvider: zkConfigProvider,
+      proofProvider: httpClientProofProvider(envConfiguration.proofServer, zkConfigProvider),
       walletProvider: walletProvider,
       midnightProvider: walletProvider,
     };

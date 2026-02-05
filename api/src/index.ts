@@ -30,14 +30,14 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index';
+import { CompiledBBoardContractContract } from '../../contract/src/index';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
+import { BBoardPrivateState, createBBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 
 /** @internal */
-const bboardContractInstance: BBoardContract = new BBoard.Contract(witnesses);
 
 /**
  * An API for a deployed bulletin board.
@@ -181,9 +181,9 @@ export class BBoardAPI implements DeployedBBoardAPI {
   static async deploy(providers: BBoardProviders, logger?: Logger): Promise<BBoardAPI> {
     logger?.info('deployContract');
 
-    const deployedBBoardContract = await deployContract<typeof bboardContractInstance>(providers, {
+    const deployedBBoardContract = await deployContract(providers, {
+      compiledContract: CompiledBBoardContractContract,
       privateStateId: bboardPrivateStateKey,
-      contract: bboardContractInstance,
       initialPrivateState: await BBoardAPI.getPrivateState(providers),
     });
 
@@ -214,7 +214,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
 
     const deployedBBoardContract = await findDeployedContract<BBoardContract>(providers, {
       contractAddress,
-      contract: bboardContractInstance,
+      compiledContract: CompiledBBoardContractContract,
       privateStateId: bboardPrivateStateKey,
       initialPrivateState: await BBoardAPI.getPrivateState(providers),
     });

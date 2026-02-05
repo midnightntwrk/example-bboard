@@ -18,7 +18,6 @@
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import { UtxoWithMeta as UtxoWithMetaDust } from '@midnight-ntwrk/wallet-sdk-dust-wallet';
 import { createKeystore, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
-import { TransactionToProve } from '@midnight-ntwrk/midnight-js-types';
 import { NetworkId } from '@midnight-ntwrk/wallet-sdk-abstractions';
 import { Logger } from 'pino';
 import { HDWallet, Roles } from '@midnight-ntwrk/wallet-sdk-hd';
@@ -75,14 +74,7 @@ export const generateDust = async (
   const intent = registerForDustTransaction.intents?.get(1);
   const intentSignatureData = intent!.signatureData(1);
   const signature = unshieldedKeystore.signData(intentSignatureData);
-  const recipe = (await walletFacade.dust.addDustGenerationSignature(
-    registerForDustTransaction,
-    signature,
-  )) as TransactionToProve;
-
-  if (recipe.type !== 'TransactionToProve') {
-    throw Error('Unexpected recipe type returned when registering Night UTXOs.');
-  }
+  const recipe = await walletFacade.dust.addDustGenerationSignature(registerForDustTransaction, signature);
 
   const transaction = await walletFacade.finalizeTransaction(recipe);
   const txId = await walletFacade.submitTransaction(transaction);
