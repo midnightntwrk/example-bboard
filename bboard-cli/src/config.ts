@@ -36,7 +36,7 @@ export const currentDir = path.resolve(new URL(import.meta.url).pathname, '..');
 
 export class StandaloneConfig implements Config {
   getEnvironment(logger: Logger): TestEnvironment {
-    return getTestEnvironment(logger);
+    return getTestEnvironment(logger) as TestEnvironment;
   }
   privateStateStoreName = 'bboard-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'standalone', `${new Date().toISOString()}.log`);
@@ -74,6 +74,14 @@ export class PreviewTestEnvironment extends RemoteTestEnvironment {
     super(logger);
   }
 
+  private getProofServerUrl(): string {
+    const container = this.proofServerContainer as { getUrl(): string } | undefined;
+    if (!container) {
+      throw new Error('Proof server container is not available.');
+    }
+    return container.getUrl();
+  }
+
   getEnvironmentConfiguration(): EnvironmentConfiguration {
     return {
       walletNetworkId: 'preview',
@@ -83,7 +91,7 @@ export class PreviewTestEnvironment extends RemoteTestEnvironment {
       node: 'https://rpc.preview.midnight.network',
       nodeWS: 'wss://rpc.preview.midnight.network',
       faucet: 'https://faucet.preview.midnight.network/api/request-tokens',
-      proofServer: this.proofServerContainer?.getUrl(),
+      proofServer: this.getProofServerUrl(),
     };
   }
 }
@@ -91,6 +99,14 @@ export class PreviewTestEnvironment extends RemoteTestEnvironment {
 export class PreprodTestEnvironment extends RemoteTestEnvironment {
   constructor(logger: Logger) {
     super(logger);
+  }
+
+  private getProofServerUrl(): string {
+    const container = this.proofServerContainer as { getUrl(): string } | undefined;
+    if (!container) {
+      throw new Error('Proof server container is not available.');
+    }
+    return container.getUrl();
   }
 
   getEnvironmentConfiguration(): EnvironmentConfiguration {
@@ -102,7 +118,7 @@ export class PreprodTestEnvironment extends RemoteTestEnvironment {
       node: 'https://rpc.preprod.midnight.network',
       nodeWS: 'wss://rpc.preprod.midnight.network',
       faucet: 'https://faucet.preprod.midnight.network/api/request-tokens',
-      proofServer: this.proofServerContainer?.getUrl(),
+      proofServer: this.getProofServerUrl(),
     };
   }
 }

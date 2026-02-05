@@ -18,7 +18,6 @@
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import { UtxoWithMeta as UtxoWithMetaDust } from '@midnight-ntwrk/wallet-sdk-dust-wallet';
 import { createKeystore, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
-import { NetworkId } from '@midnight-ntwrk/wallet-sdk-abstractions';
 import { Logger } from 'pino';
 import { HDWallet, Roles } from '@midnight-ntwrk/wallet-sdk-hd';
 import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
@@ -51,7 +50,7 @@ export const generateDust = async (
   const ttlIn10min = new Date(Date.now() + 10 * 60 * 1000);
   const dustState = await walletFacade.dust.waitForSyncedState();
   const networkId = getNetworkId();
-  const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId as NetworkId.NetworkId);
+  const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId);
   const utxos: UtxoWithMetaDust[] = unshieldedState.availableCoins
     .filter((coin) => !coin.meta.registeredForDustGeneration)
     .map((utxo) => ({ ...utxo.utxo, ctime: new Date(utxo.meta.ctime) }));
