@@ -242,6 +242,9 @@ The UI will be available at:
 
 This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
 
+- **Midnight Lace issue**
+  Midnight Lace Wallet version 2.38.0 has a transaction balancing issue. Users receive the error message: “Failed to clone intent.” A fix is required to resolve this problem.
+
 - **Proof server (ARM64 compatibility)**  
   The upstream proof server does not run on `arm64`. A patched version is used instead:  
   `bricktowers/proof-server:7.0.0`.
