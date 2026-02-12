@@ -39,7 +39,7 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^10.0.1",
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/babel__core": "^7.20.5",
     "@types/semver": "^7.7.1",
