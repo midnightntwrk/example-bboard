@@ -1,6 +1,6 @@
 # Bulletin Board DApp
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.23.0-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.28.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
@@ -28,7 +28,7 @@ You need Node.js (tested with current LTS):
 node --version
 ```
 
-Expected output: `v22.15.0` or higher.
+Expected output: `v24.11.1` or higher.
 
 If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
 
@@ -111,25 +111,10 @@ cd ..
 
 ## Option 1: CLI Interface
 
-### Start the Proof Server
-
-The proof server must be running before using the CLI to generate zero-knowledge proofs for transactions:
-
-```bash
-cd bboard-cli
-docker compose -f proof-server-testnet.yml up -d
-```
-
-Verify it's running:
-
-```bash
-docker ps
-```
-
 ### Run the CLI
 
 ```bash
-npm run testnet-remote
+npm run preprod-remote
 ```
 
 ### Using the CLI
@@ -144,7 +129,7 @@ Expected output:
 
 ```
 Your wallet seed is: [64-character hex string]
-Your wallet address is: mn_shield-addr_test1...
+Using unshielded address: mn_addr_preprod1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlxpwflz3fxdykaesrw0ln4 waiting for funds...
 ```
 
 #### Fund Your Wallet
@@ -152,14 +137,14 @@ Your wallet address is: mn_shield-addr_test1...
 Before deploying contracts, you need testnet tokens.
 
 1. Copy your wallet address from the output above
-2. Visit the [testnet faucet](https://midnight.network/test-faucet)
+2. Visit the [faucet](https://faucet.preprod.midnight.network/)
 3. Paste your address and request funds
 4. Wait for the CLI to detect the funds (takes 2-3 minutes)
 
 Expected output:
 
 ```
-Your wallet balance is: 1000000000
+Your NIGHT wallet balance is: 1000000000
 ```
 
 #### Deploy Your Contract
@@ -195,7 +180,7 @@ If you haven't started the proof server for the CLI, start it now:
 
 ```bash
 cd bboard-cli
-docker compose -f proof-server-testnet.yml up -d
+docker compose -f proof-server-local.yml up -d
 ```
 
 Verify it's running:
@@ -206,9 +191,11 @@ docker ps
 
 ### Start the Web Interface
 
+The UI can run against preprod, preview, or undeployed networks. Configure the target in `bboard-ui/.env.preprod` before starting.
+
 ```bash
 cd bboard-ui
-npm run start
+npm run build:start
 ```
 
 The UI will be available at:
@@ -232,12 +219,12 @@ The UI will be available at:
 ## Troubleshooting
 
 | Common Issue                       | Solution                                                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ---------------------------------- |-----------------------------------------------------------------------------------------------------------|
 | `npm install` fails                | Ensure you're using Node.js LTS version. If you get ERESOLVE errors, try `npm install --legacy-peer-deps` |
 | Contract compilation fails         | Ensure you're in `contract` directory and run `npm run compact`                                           |
 | Network connection timeout         | CLI requires internet connection, restart if connection times out                                         |
 | Token funding takes too long       | Wait 1-2 minutes, funding is automatic in CLI                                                             |
-| "Application not authorized" error | Start proof server: `docker compose -f proof-server-testnet.yml up -d`                                    |
+| "Application not authorized" error | Start proof server: `docker compose -f proof-server-local.yml up -d`                                      |
 | Lace wallet not detected           | Install Lace wallet browser extension and refresh page                                                    |
 | Docker issues                      | Ensure Docker Desktop is running, check `docker --version`                                                |
 | Port 6300 in use                   | Run `docker compose down` then restart services                                                           |
@@ -250,3 +237,27 @@ The UI will be available at:
 - Proof server (Docker) is required for both CLI and UI to generate zero-knowledge proofs
 - Contract must be compiled before building CLI or UI
 - Fund your wallet using the testnet faucet before deploying contracts
+
+## Repository Notes / Temporary Workarounds
+
+This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
+
+- **Midnight Lace issue**
+  Midnight Lace Wallet version 2.38.0 has a transaction balancing issue. Users receive the error message: “Failed to clone intent.” A fix is required to resolve this problem.
+
+- **Proof server (ARM64 compatibility)**  
+  The upstream proof server does not run on `arm64`. A patched version is used instead:  
+  `bricktowers/proof-server:7.0.0`.
+
+- **Modified testkit sources**  
+  Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.
+
+- **Transaction fee configuration**  
+  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from 'midnight-testkit-js' is required on the Undeployed network (lower values fail with `BalanceCheckOverspend` on the `midnight-node` side). On the Preview network, that high overhead prevents transaction creation because it requires a large amount of dust, so it is overridden and set to `1_000n`. The root cause is not yet clear.
+
+- **LevelDB private state provider**  
+  The `levelDbPrivateStateProvider`, shipped with Node.js dependencies, does not work in browser environments. An in-memory private state provider is used instead; the implementation is copied from `midnight-js`.
+
+- **Overall API Usage**
+  Some of the tooling used in `midnight-testkit-js`, `midnight-js` and `midnight-wallet` is not currently well suited for direct application use. Significant wiring and integration logic is required, parts of which are copied into this repository.
+  More flexible and composable APIs would reduce the need for copying and modification, allowing consumers to extend functionality rather than patch or fork existing implementations.

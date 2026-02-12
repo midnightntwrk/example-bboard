@@ -19,11 +19,9 @@
  * @packageDocumentation
  */
 
-import contractModule from '../../contract/src/managed/bboard/contract/index.cjs';
-const { Contract, ledger, pureCircuits, State } = contractModule;
-// import { Contract, ledger, pureCircuits, State } from '../../contract/src/index';
+import * as BBoard from '../../contract/src/managed/bboard/contract/index.js';
 
-import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
 import {
   type BBoardDerivedState,
@@ -32,15 +30,14 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-// import { Contract, ledger, pureCircuits, State } from '../../contract/src/managed/bboard/contract/index.cjs';
-import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from '../../contract/src/index';
+import { CompiledBBoardContractContract } from '../../contract/src/index';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
+import { BBoardPrivateState, createBBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 
 /** @internal */
-const bboardContractInstance: BBoardContract = new Contract(witnesses);
 
 /**
  * An API for a deployed bulletin board.
@@ -82,13 +79,13 @@ export class BBoardAPI implements DeployedBBoardAPI {
       [
         // Combine public (ledger) state with...
         providers.publicDataProvider.contractStateObservable(this.deployedContractAddress, { type: 'latest' }).pipe(
-          map((contractState) => ledger(contractState.data)),
+          map((contractState) => BBoard.ledger(contractState.data)),
           tap((ledgerState) =>
             logger?.trace({
               ledgerStateChanged: {
                 ledgerState: {
                   ...ledgerState,
-                  state: ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant',
+                  state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
                   owner: toHex(ledgerState.owner),
                 },
               },
@@ -103,9 +100,9 @@ export class BBoardAPI implements DeployedBBoardAPI {
       ],
       // ...and combine them to produce the required derived state.
       (ledgerState, privateState) => {
-        const hashedSecretKey = pureCircuits.publicKey(
+        const hashedSecretKey = BBoard.pureCircuits.publicKey(
           privateState.secretKey,
-          convert_bigint_to_Uint8Array(32, ledgerState.sequence),
+          convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
         );
 
         return {
@@ -184,10 +181,9 @@ export class BBoardAPI implements DeployedBBoardAPI {
   static async deploy(providers: BBoardProviders, logger?: Logger): Promise<BBoardAPI> {
     logger?.info('deployContract');
 
-    // EXERCISE 5: FILL IN THE CORRECT ARGUMENTS TO deployContract
-    const deployedBBoardContract = await deployContract<typeof bboardContractInstance>(providers, {
+    const deployedBBoardContract = await deployContract(providers, {
+      compiledContract: CompiledBBoardContractContract,
       privateStateId: bboardPrivateStateKey,
-      contract: bboardContractInstance,
       initialPrivateState: await BBoardAPI.getPrivateState(providers),
     });
 
@@ -218,7 +214,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
 
     const deployedBBoardContract = await findDeployedContract<BBoardContract>(providers, {
       contractAddress,
-      contract: bboardContractInstance,
+      compiledContract: CompiledBBoardContractContract,
       privateStateId: bboardPrivateStateKey,
       initialPrivateState: await BBoardAPI.getPrivateState(providers),
     });
