@@ -3,6 +3,12 @@
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.28.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
+
+> **Use this repo as a template. Do not fork it.**
+>  
+> This repository is intended to be used via GitHub’s “Use this template” flow.  
+> Forking this repo is discouraged, as forks are not tracked as independent projects.
+
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
 
 ## Project Structure
