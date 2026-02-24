@@ -21,44 +21,34 @@
  * of the servers this file relies on.
  */
 
-// Wallet seed: 8dd96c613b92a1ced03ac5e71a039d4447cfe84928864fc38260b28cd30378c2
-
 import { createInterface, type Interface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { WebSocket } from 'ws';
-// import { webcrypto } from 'crypto';
 import {
-  type BBoardProviders,
   BBoardAPI,
-  utils,
   type BBoardDerivedState,
+  bboardPrivateStateKey,
+  type BBoardProviders,
   type DeployedBBoardContract,
   type PrivateStateId,
-  bboardPrivateStateKey,
 } from '../../api/src/index';
-import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.cjs';
-import {
-  type BalancedTransaction,
-  createBalancedTx,
-  type MidnightProvider,
-  type UnbalancedTransaction,
-  type WalletProvider,
-} from '@midnight-ntwrk/midnight-js-types';
-import { type Wallet } from '@midnight-ntwrk/wallet-api';
-import * as Rx from 'rxjs';
-import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
-import { Transaction as ZswapTransaction } from '@midnight-ntwrk/zswap';
+import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
+import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.js';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
-import { type Resource, WalletBuilder } from '@midnight-ntwrk/wallet';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { type Logger } from 'pino';
 import { type Config, StandaloneConfig } from './config.js';
-import type { StartedDockerComposeEnvironment, DockerComposeEnvironment } from 'testcontainers';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { toHex, assertIsContractAddress } from '@midnight-ntwrk/midnight-js-utils';
-import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-utils';
+import { TestEnvironment } from '@midnight-ntwrk/testkit-js';
+import { MidnightWalletProvider } from './midnight-wallet-provider';
+import { randomBytes } from '../../api/src/utils';
+import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
+import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
+import { generateDust } from './generate-dust';
+import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
@@ -238,107 +228,6 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
   }
 };
 
-/* **********************************************************************
- * createWalletAndMidnightProvider: returns an object that
- * satifies both the WalletProvider and MidnightProvider
- * interfaces, both implemented in terms of the given wallet.
- */
-
-const createWalletAndMidnightProvider = async (wallet: Wallet): Promise<WalletProvider & MidnightProvider> => {
-  const state = await Rx.firstValueFrom(wallet.state());
-  return {
-    coinPublicKey: state.coinPublicKey,
-    encryptionPublicKey: state.encryptionPublicKey,
-    balanceTx(tx: UnbalancedTransaction, newCoins: CoinInfo[]): Promise<BalancedTransaction> {
-      return wallet
-        .balanceTransaction(
-          ZswapTransaction.deserialize(tx.serialize(getLedgerNetworkId()), getZswapNetworkId()),
-          newCoins,
-        )
-        .then((tx) => wallet.proveTransaction(tx))
-        .then((zswapTx) => Transaction.deserialize(zswapTx.serialize(getZswapNetworkId()), getLedgerNetworkId()))
-        .then(createBalancedTx);
-    },
-    submitTx(tx: BalancedTransaction): Promise<TransactionId> {
-      return wallet.submitTransaction(tx);
-    },
-  };
-};
-
-/* **********************************************************************
- * waitForFunds: wait for tokens to appear in a wallet.
- *
- * This is an interesting example of watching the stream of states
- * coming from the pub-sub indexer.  It watches both
- *  1. how close the state is to present reality and
- *  2. the balance held by the wallet.
- */
-
-const waitForFunds = (wallet: Wallet, logger: Logger) =>
-  Rx.firstValueFrom(
-    wallet.state().pipe(
-      Rx.throttleTime(10_000),
-      Rx.tap((state) => {
-        const scanned = state.syncProgress?.synced ?? 0n;
-        const behind = state.syncProgress?.lag.applyGap.toString() ?? 'unknown number';
-        logger.info(`Wallet processed ${scanned} indices, remaining ${behind}`);
-      }),
-      Rx.filter((state) => {
-        // Let's allow progress only if wallet is close enough
-        const synced = typeof state.syncProgress?.synced === 'bigint' ? state.syncProgress.synced : 0n;
-        const total = typeof state.syncProgress?.lag?.applyGap === 'bigint' ? state.syncProgress.lag.applyGap : 1_000n;
-        return total - synced < 100n;
-      }),
-      Rx.map((s) => s.balances[nativeToken()] ?? 0n),
-      Rx.filter((balance) => balance > 0n),
-    ),
-  );
-
-/* **********************************************************************
- * buildWalletAndWaitForFunds: the main function that creates a wallet
- * and waits for tokens to appear in it.  The various "buildWallet"
- * functions all arrive here after collecting information for the
- * arguments.
- */
-
-const buildWalletAndWaitForFunds = async (
-  { indexer, indexerWS, node, proofServer }: Config,
-  logger: Logger,
-  seed: string,
-): Promise<Wallet & Resource> => {
-  const wallet = await WalletBuilder.buildFromSeed(
-    indexer,
-    indexerWS,
-    proofServer,
-    node,
-    seed,
-    getZswapNetworkId(),
-    'warn',
-  );
-  wallet.start();
-  const state = await Rx.firstValueFrom(wallet.state());
-  logger.info(`Your wallet seed is: ${seed}`);
-  logger.info(`Your wallet address is: ${state.address}`);
-  let balance = state.balances[nativeToken()];
-  if (balance === undefined || balance === 0n) {
-    logger.info(`Your wallet balance is: 0`);
-    logger.info(`Waiting to receive tokens...`);
-    balance = await waitForFunds(wallet, logger);
-  }
-  logger.info(`Your wallet balance is: ${balance}`);
-  return wallet;
-};
-
-// Generate a random see and create the wallet with that.
-const buildFreshWallet = async (config: Config, logger: Logger): Promise<Wallet & Resource> =>
-  await buildWalletAndWaitForFunds(config, logger, toHex(utils.randomBytes(32)));
-
-// Prompt for a seed and create the wallet with that.
-const buildWalletFromSeed = async (config: Config, rli: Interface, logger: Logger): Promise<Wallet & Resource> => {
-  const seed = await rli.question('Enter your wallet seed: ');
-  return await buildWalletAndWaitForFunds(config, logger, seed);
-};
-
 /* ***********************************************************************
  * This seed gives access to tokens minted in the genesis block of a local development node - only
  * used in standalone networks to build a wallet with initial funds.
@@ -358,33 +247,24 @@ You can do one of the following:
   3. Exit
 Which would you like to do? `;
 
-const buildWallet = async (config: Config, rli: Interface, logger: Logger): Promise<(Wallet & Resource) | null> => {
+const buildWallet = async (config: Config, rli: Interface, logger: Logger): Promise<string | undefined> => {
   if (config instanceof StandaloneConfig) {
-    return await buildWalletAndWaitForFunds(config, logger, GENESIS_MINT_WALLET_SEED);
+    return GENESIS_MINT_WALLET_SEED;
   }
   while (true) {
     const choice = await rli.question(WALLET_LOOP_QUESTION);
     switch (choice) {
       case '1':
-        return await buildFreshWallet(config, logger);
+        return toHex(randomBytes(32));
       case '2':
-        return await buildWalletFromSeed(config, rli, logger);
+        return await rli.question('Enter your wallet seed: ');
       case '3':
         logger.info('Exiting...');
-        return null;
+        return undefined;
       default:
         logger.error(`Invalid choice: ${choice}`);
     }
   }
-};
-
-const mapContainerPort = (env: StartedDockerComposeEnvironment, url: string, containerName: string) => {
-  const mappedUrl = new URL(url);
-  const container = env.getContainer(containerName);
-
-  mappedUrl.port = String(container.getFirstMappedPort());
-
-  return mappedUrl.toString().replace(/\/+$/, '');
 };
 
 /* **********************************************************************
@@ -394,35 +274,60 @@ const mapContainerPort = (env: StartedDockerComposeEnvironment, url: string, con
  * will wait for Docker to be ready before doing anything else.
  */
 
-export const run = async (config: Config, logger: Logger, dockerEnv?: DockerComposeEnvironment): Promise<void> => {
+export const run = async (config: Config, testEnv: TestEnvironment, logger: Logger): Promise<void> => {
   const rli = createInterface({ input, output, terminal: true });
-  let env;
-  if (dockerEnv !== undefined) {
-    env = await dockerEnv.up();
-
-    if (config instanceof StandaloneConfig) {
-      config.indexer = mapContainerPort(env, config.indexer, 'bboard-indexer');
-      config.indexerWS = mapContainerPort(env, config.indexerWS, 'bboard-indexer');
-      config.node = mapContainerPort(env, config.node, 'bboard-node');
-      config.proofServer = mapContainerPort(env, config.proofServer, 'bboard-proof-server');
-    }
-  }
-  const wallet = await buildWallet(config, rli, logger);
+  const providersToBeStopped: MidnightWalletProvider[] = [];
   try {
-    if (wallet !== null) {
-      const walletAndMidnightProvider = await createWalletAndMidnightProvider(wallet);
-      const providers = {
-        privateStateProvider: levelPrivateStateProvider<PrivateStateId>({
-          privateStateStoreName: config.privateStateStoreName,
-        }),
-        publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
-        zkConfigProvider: new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath),
-        proofProvider: httpClientProofProvider(config.proofServer),
-        walletProvider: walletAndMidnightProvider,
-        midnightProvider: walletAndMidnightProvider,
-      };
-      await mainLoop(providers, rli, logger);
+    const envConfiguration = await testEnv.start();
+    logger.info(`Environment started with configuration: ${JSON.stringify(envConfiguration)}`);
+    const seed = await buildWallet(config, rli, logger);
+    if (seed === undefined) {
+      return;
     }
+    const walletProvider = await MidnightWalletProvider.build(logger, envConfiguration, seed);
+    providersToBeStopped.push(walletProvider);
+    const walletFacade: WalletFacade = walletProvider.wallet;
+
+    await walletProvider.start();
+
+    const unshieldedState = await waitForUnshieldedFunds(
+      logger,
+      walletFacade,
+      envConfiguration,
+      unshieldedToken(),
+      config.requestFaucetTokens,
+    );
+    const nightBalance = unshieldedState.balances[unshieldedToken().raw];
+    if (nightBalance === undefined) {
+      logger.info('No funds received, exiting...');
+      return;
+    }
+    logger.info(`Your NIGHT wallet balance is: ${nightBalance}`);
+
+    if (config.generateDust) {
+      const dustGeneration = await generateDust(logger, seed, unshieldedState, walletFacade);
+      if (dustGeneration) {
+        logger.info(`Submitted dust generation registration transaction: ${dustGeneration}`);
+        await syncWallet(logger, walletFacade);
+      }
+    }
+
+    const zkConfigProvider = new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath);
+    const providers: BBoardProviders = {
+      privateStateProvider: levelPrivateStateProvider<PrivateStateId, BBoardPrivateState>({
+        privateStateStoreName: config.privateStateStoreName,
+        signingKeyStoreName: `${config.privateStateStoreName}-signing-keys`,
+        privateStoragePasswordProvider: () => {
+          return 'key-just-for-testing-here!';
+        },
+      }),
+      publicDataProvider: indexerPublicDataProvider(envConfiguration.indexer, envConfiguration.indexerWS),
+      zkConfigProvider: zkConfigProvider,
+      proofProvider: httpClientProofProvider(envConfiguration.proofServer, zkConfigProvider),
+      walletProvider: walletProvider,
+      midnightProvider: walletProvider,
+    };
+    await mainLoop(providers, rli, logger);
   } catch (e) {
     logError(logger, e);
     logger.info('Exiting...');
@@ -434,21 +339,16 @@ export const run = async (config: Config, logger: Logger, dockerEnv?: DockerComp
       logError(logger, e);
     } finally {
       try {
-        if (wallet !== null) {
-          await wallet.close();
+        for (const wallet of providersToBeStopped) {
+          logger.info('Stopping wallet...');
+          await wallet.stop();
+        }
+        if (testEnv) {
+          logger.info('Stopping test environment...');
+          await testEnv.shutdown();
         }
       } catch (e) {
         logError(logger, e);
-      } finally {
-        try {
-          if (env !== undefined) {
-            await env.down();
-            logger.info('Goodbye');
-            process.exit(0);
-          }
-        } catch (e) {
-          logError(logger, e);
-        }
       }
     }
   }

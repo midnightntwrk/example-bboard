@@ -5,7 +5,14 @@
     "build": {
       "dependsOn": ["compact"],
       "outputMode": "new-only",
-      "inputs": ["src/**/*.ts", "src/**/*.mts", "src/**/*.tsx", "!src/**/*.test.ts", "tsconfig.json", "tsconfig.build.json"],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.mts",
+        "src/**/*.tsx",
+        "!src/**/*.test.ts",
+        "tsconfig.json",
+        "tsconfig.build.json"
+      ],
       "outputs": ["dist/**"]
     },
     "lint": {
