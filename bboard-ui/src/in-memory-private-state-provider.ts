@@ -15,7 +15,14 @@
 
 import type { SigningKey } from '@midnight-ntwrk/compact-runtime';
 import type { ContractAddress } from '@midnight-ntwrk/ledger-v7';
-import { type PrivateStateId, type PrivateStateProvider } from '@midnight-ntwrk/midnight-js-types';
+import {
+  type PrivateStateId,
+  type PrivateStateProvider,
+  type PrivateStateExport,
+  type ExportPrivateStatesOptions,
+  type ImportPrivateStatesOptions,
+  type ImportPrivateStatesResult,
+} from '@midnight-ntwrk/midnight-js-types';
 
 /**
  * A simple in-memory implementation of private state provider. Makes it easy to capture and rewrite private state from deploy.
@@ -104,6 +111,33 @@ export const inMemoryPrivateStateProvider = <PSI extends PrivateStateId, PS = un
         delete signingKeys[contractAddress];
       });
       return Promise.resolve();
+    },
+    /**
+     * Sets the contract address for scoping private state operations.
+     * @param {ContractAddress} _address - The contract address to scope operations to.
+     */
+    setContractAddress(_address: ContractAddress): void {
+      // In-memory provider does not need scoping — no-op
+    },
+    /**
+     * Exports all private states as an encrypted structure.
+     * @param {ExportPrivateStatesOptions} _options - Export options.
+     * @returns {Promise<PrivateStateExport>} The exported private states.
+     */
+    async exportPrivateStates(_options?: ExportPrivateStatesOptions): Promise<PrivateStateExport> {
+      throw new Error('Export is not supported by the in-memory private state provider');
+    },
+    /**
+     * Imports private states from a previously exported structure.
+     * @param {PrivateStateExport} _exportData - The export data to import.
+     * @param {ImportPrivateStatesOptions} _options - Import options.
+     * @returns {Promise<ImportPrivateStatesResult>} Result of the import.
+     */
+    async importPrivateStates(
+      _exportData: PrivateStateExport,
+      _options?: ImportPrivateStatesOptions,
+    ): Promise<ImportPrivateStatesResult> {
+      throw new Error('Import is not supported by the in-memory private state provider');
     },
   };
 };

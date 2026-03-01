@@ -15,8 +15,8 @@
 
 import { UnshieldedTokenType } from '@midnight-ntwrk/ledger-v7';
 import { type FacadeState, type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
-import { ShieldedWallet } from '@midnight-ntwrk/wallet-sdk-shielded';
-import { type UnshieldedWallet, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
+import { type ShieldedWalletAPI } from '@midnight-ntwrk/wallet-sdk-shielded';
+import { type UnshieldedWalletAPI, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
 import * as Rx from 'rxjs';
 
 import { FaucetClient, type EnvironmentConfiguration } from '@midnight-ntwrk/testkit-js';
@@ -24,20 +24,16 @@ import { Logger } from 'pino';
 import { UnshieldedAddress } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
-export const getInitialState = async (wallet: ShieldedWallet | UnshieldedWallet) => {
-  if (wallet instanceof ShieldedWallet) {
-    return Rx.firstValueFrom((wallet as ShieldedWallet).state);
-  } else {
-    return Rx.firstValueFrom((wallet as UnshieldedWallet).state);
-  }
+export const getInitialState = async (wallet: ShieldedWalletAPI | UnshieldedWalletAPI) => {
+  return Rx.firstValueFrom(wallet.state as Rx.Observable<unknown>);
 };
 
-export const getInitialShieldedState = async (logger: Logger, wallet: ShieldedWallet) => {
+export const getInitialShieldedState = async (logger: Logger, wallet: ShieldedWalletAPI) => {
   logger.info('Getting initial state of wallet...');
   return Rx.firstValueFrom(wallet.state);
 };
 
-export const getInitialUnshieldedState = async (logger: Logger, wallet: UnshieldedWallet) => {
+export const getInitialUnshieldedState = async (logger: Logger, wallet: UnshieldedWalletAPI) => {
   logger.info('Getting initial state of wallet...');
   return Rx.firstValueFrom(wallet.state);
 };
