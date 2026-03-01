@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,8 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-// import { webcrypto } from 'crypto';
 
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import { UtxoWithMeta as UtxoWithMetaDust } from '@midnight-ntwrk/wallet-sdk-dust-wallet';
@@ -47,7 +45,7 @@ export const generateDust = async (
   unshieldedState: UnshieldedWalletState,
   walletFacade: WalletFacade,
 ) => {
-  const ttlIn10min = new Date(Date.now() + 10 * 60 * 1000);
+  const ttlIn10min = new Date(Date.now() + 10 * 60 * 1_000);
   const dustState = await walletFacade.dust.waitForSyncedState();
   const networkId = getNetworkId();
   const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId);
@@ -67,11 +65,14 @@ export const generateDust = async (
     ttlIn10min,
     utxos,
     unshieldedKeystore.getPublicKey(),
-    dustState.dustAddress,
+    dustState.address,
   );
 
   const intent = registerForDustTransaction.intents?.get(1);
-  const intentSignatureData = intent!.signatureData(1);
+  if (!intent) {
+    throw new Error('No intent found at segment 1 in dust generation transaction');
+  }
+  const intentSignatureData = intent.signatureData(1);
   const signature = unshieldedKeystore.signData(intentSignatureData);
   const recipe = await walletFacade.dust.addDustGenerationSignature(registerForDustTransaction, signature);
 
@@ -80,8 +81,8 @@ export const generateDust = async (
 
   const dustBalance = await rx.firstValueFrom(
     walletFacade.state().pipe(
-      rx.filter((s) => s.dust.walletBalance(new Date()) > 0n),
-      rx.map((s) => s.dust.walletBalance(new Date())),
+      rx.filter((s) => s.dust.balance(new Date()) > 0n),
+      rx.map((s) => s.dust.balance(new Date())),
     ),
   );
   logger.info(`Dust generation transaction submitted with txId: ${txId}`);

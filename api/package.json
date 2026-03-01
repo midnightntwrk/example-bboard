@@ -1,8 +1,8 @@
 {
   "name": "@midnight-ntwrk/bboard-api",
   "version": "0.1.0",
-  "author": "IOG",
-  "license": "MIT",
+  "author": "Midnight Foundation",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "module": "./dist/index.js",
