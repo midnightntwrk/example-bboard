@@ -1,5 +1,7 @@
 # Bulletin Board DApp
 
+This project is built on the [Midnight Network](https://midnight.network/).
+
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.28.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
