@@ -79,21 +79,16 @@ export type DeployedBBoardContract = FoundContract<BBoardContract>;
 
 /**
  * A type that represents the derived combination of public (or ledger), and private state.
+ *
+ * @remarks
+ * With sealed ownership, the `owner` field is no longer visible in the public ledger.
+ * Ownership can only be verified via the `revealOwnership` ZK circuit.
  */
 export type BBoardDerivedState = {
   readonly state: State;
   readonly sequence: bigint;
   readonly message: string | undefined;
-
-  /**
-   * A readonly flag that determines if the current message was posted by the current user.
-   *
-   * @remarks
-   * The `owner` property of the public (or ledger) state is the public key of the message owner, while
-   * the `secretKey` property of {@link BBoardPrivateState} is the secret key of the current user. If
-   * `owner` corresponds to the public key derived from `secretKey`, then `isOwner` is `true`.
-   */
-  readonly isOwner: boolean;
+  readonly ownershipSealed: true;
 };
 
 // TODO: for some reason I needed to include "@midnight-ntwrk/wallet-sdk-address-format": "1.0.0-rc.1", should we bump in to rc-2 ?
