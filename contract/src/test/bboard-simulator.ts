@@ -17,7 +17,6 @@ import {
   type CircuitContext,
   QueryContext,
   sampleContractAddress,
-  convertFieldToBytes,
   createConstructorContext,
   CostModel,
 } from "@midnight-ntwrk/compact-runtime";
@@ -90,16 +89,11 @@ export class BBoardSimulator {
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
-  public publicKey(): Uint8Array {
-    const sequence = convertFieldToBytes(
-      32,
-      this.getLedger().sequence,
-      "bboard-simulator.ts",
-    );
-    return this.contract.circuits.publicKey(
+  public revealOwnership(): boolean {
+    const result = this.contract.impureCircuits.revealOwnership(
       this.circuitContext,
-      this.getPrivateState().secretKey,
-      sequence,
-    ).result;
+    );
+    this.circuitContext = result.context;
+    return result.result;
   }
 }

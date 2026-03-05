@@ -130,7 +130,7 @@ const displayLedgerState = async (
     logger.info(`Current state is: '${boardState}'`);
     logger.info(`Current message is: '${latestMessage}'`);
     logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${toHex(ledgerState.owner)}'`);
+    logger.info(`Current owner is: '<sealed>'`);
   }
 };
 
@@ -163,7 +163,7 @@ const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger
     logger.info(`Current state is: '${boardState}'`);
     logger.info(`Current message is: '${latestMessage}'`);
     logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
+    logger.info(`Current owner is: '<sealed>' (use option 7 to verify ownership via ZK proof)`);
   }
 };
 
@@ -181,6 +181,7 @@ You can do one of the following:
   4. Display the current private state (known only to this DApp instance)
   5. Display the current derived state (known only to this DApp instance)
   6. Exit
+  7. Verify ownership (ZK proof)
 Which would you like to do? `;
 
 const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logger): Promise<void> => {
@@ -217,6 +218,14 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
         case '6':
           logger.info('Exiting...');
           return;
+        case '7':
+          try {
+            const isOwner = await bboardApi.revealOwnership();
+            logger.info(`Ownership verification: ${isOwner ? 'You ARE the owner' : 'You are NOT the owner'}`);
+          } catch (e) {
+            logger.error(`Ownership verification failed: ${e instanceof Error ? e.message : 'unknown error'}`);
+          }
+          break;
         default:
           logger.error(`Invalid choice: ${choice}`);
       }
@@ -312,7 +321,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
       }
     }
 
-    const zkConfigProvider = new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath);
+    const zkConfigProvider = new NodeZkConfigProvider<'post' | 'takeDown' | 'revealOwnership'>(config.zkConfigPath);
     const providers: BBoardProviders = {
       privateStateProvider: levelPrivateStateProvider<PrivateStateId, BBoardPrivateState>({
         privateStateStoreName: config.privateStateStoreName,

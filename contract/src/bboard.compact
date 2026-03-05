@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version 0.20;
+pragma language_version 0.21;
 
 import CompactStandardLibrary;
 
@@ -28,7 +28,7 @@ export ledger message: Maybe<Opaque<"string">>;
 
 export ledger sequence: Counter;
 
-export ledger owner: Bytes<32>;
+ledger owner: Bytes<32>;
 
 constructor() {
   state = State.VACANT;
@@ -53,6 +53,11 @@ export circuit takeDown(): Opaque<"string"> {
   sequence.increment(1);
   message = none<Opaque<"string">>();
   return formerMsg;
+}
+
+export circuit revealOwnership(): Boolean {
+  assert(state == State.OCCUPIED, "No post to verify ownership of");
+  return disclose(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>));
 }
 
 export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {

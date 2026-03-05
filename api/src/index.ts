@@ -21,7 +21,7 @@
 
 import * as BBoard from '../../contract/src/managed/bboard/contract/index.js';
 
-import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
 import {
   type BBoardDerivedState,
@@ -33,9 +33,9 @@ import {
 import { CompiledBBoardContractContract } from '../../contract/src/index';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
-import { combineLatest, map, tap, from, type Observable } from 'rxjs';
+import { map, tap, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
-import { BBoardPrivateState, createBBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
+import { type BBoardPrivateState, createBBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 
 /** @internal */
 
@@ -48,6 +48,7 @@ export interface DeployedBBoardAPI {
 
   post: (message: string) => Promise<void>;
   takeDown: () => Promise<void>;
+  revealOwnership: () => Promise<boolean>;
 }
 
 /**
@@ -75,44 +76,27 @@ export class BBoardAPI implements DeployedBBoardAPI {
     private readonly logger?: Logger,
   ) {
     this.deployedContractAddress = deployedContract.deployTxData.public.contractAddress;
-    this.state$ = combineLatest(
-      [
-        // Combine public (ledger) state with...
-        providers.publicDataProvider.contractStateObservable(this.deployedContractAddress, { type: 'latest' }).pipe(
-          map((contractState) => BBoard.ledger(contractState.data)),
-          tap((ledgerState) =>
-            logger?.trace({
-              ledgerStateChanged: {
-                ledgerState: {
-                  ...ledgerState,
-                  state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
-                  owner: toHex(ledgerState.owner),
-                },
+    this.state$ = providers.publicDataProvider
+      .contractStateObservable(this.deployedContractAddress, { type: 'latest' })
+      .pipe(
+        map((contractState) => BBoard.ledger(contractState.data)),
+        tap((ledgerState) =>
+          logger?.trace({
+            ledgerStateChanged: {
+              ledgerState: {
+                ...ledgerState,
+                state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
               },
-            }),
-          ),
+            },
+          }),
         ),
-        // ...private state...
-        //    since the private state of the bulletin board application never changes, we can query the
-        //    private state once and always use the same value with `combineLatest`. In applications
-        //    where the private state is expected to change, we would need to make this an `Observable`.
-        from(providers.privateStateProvider.get(bboardPrivateStateKey) as Promise<BBoardPrivateState>),
-      ],
-      // ...and combine them to produce the required derived state.
-      (ledgerState, privateState) => {
-        const hashedSecretKey = BBoard.pureCircuits.publicKey(
-          privateState.secretKey,
-          convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
-        );
-
-        return {
+        map((ledgerState) => ({
           state: ledgerState.state,
           message: ledgerState.message.value,
           sequence: ledgerState.sequence,
-          isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
-        };
-      },
-    );
+          ownershipSealed: true as const,
+        })),
+      );
   }
 
   /**
@@ -168,6 +152,31 @@ export class BBoardAPI implements DeployedBBoardAPI {
         blockHeight: txData.public.blockHeight,
       },
     });
+  }
+
+  /**
+   * Verifies ownership of the current post via a ZK proof.
+   *
+   * @returns A `Promise` that resolves with `true` if the current user is the owner, `false` otherwise.
+   *
+   * @remarks
+   * This method uses selective disclosure — only a boolean result is revealed, not the owner's key.
+   * It will fail if the bulletin board is currently vacant.
+   */
+  async revealOwnership(): Promise<boolean> {
+    this.logger?.info('verifyingOwnership');
+
+    const txData = await this.deployedContract.callTx.revealOwnership();
+
+    this.logger?.trace({
+      transactionAdded: {
+        circuit: 'revealOwnership',
+        txHash: txData.public.txHash,
+        blockHeight: txData.public.blockHeight,
+      },
+    });
+
+    return txData.public.result;
   }
 
   /**

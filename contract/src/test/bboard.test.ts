@@ -39,7 +39,6 @@ describe("BBoard smart contract", () => {
     expect(initialLedgerState.sequence).toEqual(1n);
     expect(initialLedgerState.message.is_some).toEqual(false);
     expect(initialLedgerState.message.value).toEqual("");
-    expect(initialLedgerState.owner).toEqual(new Uint8Array(32));
     expect(initialLedgerState.state).toEqual(State.VACANT);
     const initialPrivateState = simulator.getPrivateState();
     expect(initialPrivateState).toEqual({ secretKey: key });
@@ -58,14 +57,14 @@ describe("BBoard smart contract", () => {
     expect(ledgerState.sequence).toEqual(1n);
     expect(ledgerState.message.is_some).toEqual(true);
     expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
     expect(ledgerState.state).toEqual(State.OCCUPIED);
+    // Verify ownership via ZK proof
+    expect(simulator.revealOwnership()).toEqual(true);
   });
 
   it("lets you take down a message", () => {
     const simulator = new BBoardSimulator(randomBytes(32));
     const initialPrivateState = simulator.getPrivateState();
-    const initialPublicKey = simulator.publicKey();
     const message =
       "Prince Raoden of Arelon awoke early that morning, completely unaware that he had been damned for all eternity.";
     simulator.post(message);
@@ -77,8 +76,6 @@ describe("BBoard smart contract", () => {
     expect(ledgerState.sequence).toEqual(2n);
     expect(ledgerState.message.is_some).toEqual(false);
     expect(ledgerState.message.value).toEqual("");
-    // Technically the circuit doesn't clear the previous owner
-    expect(ledgerState.owner).toEqual(initialPublicKey);
     expect(ledgerState.state).toEqual(State.VACANT);
   });
 
@@ -96,8 +93,9 @@ describe("BBoard smart contract", () => {
     expect(ledgerState.sequence).toEqual(2n);
     expect(ledgerState.message.is_some).toEqual(true);
     expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
     expect(ledgerState.state).toEqual(State.OCCUPIED);
+    // Verify ownership via ZK proof
+    expect(simulator.revealOwnership()).toEqual(true);
   });
 
   it("lets a different user post a message after taking down the first", () => {
@@ -111,8 +109,9 @@ describe("BBoard smart contract", () => {
     expect(ledgerState.sequence).toEqual(2n);
     expect(ledgerState.message.is_some).toEqual(true);
     expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
     expect(ledgerState.state).toEqual(State.OCCUPIED);
+    // Verify new user is the owner via ZK proof
+    expect(simulator.revealOwnership()).toEqual(true);
   });
 
   it("doesn't let the same user post twice", () => {
@@ -145,5 +144,40 @@ describe("BBoard smart contract", () => {
     expect(() => simulator.takeDown()).toThrow(
       "failed assert: Attempted to take down post, but not the current owner",
     );
+  });
+
+  it("revealOwnership returns true for owner", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post("The most important step a man can take is the next one.");
+    expect(simulator.revealOwnership()).toEqual(true);
+  });
+
+  it("revealOwnership returns false for non-owner", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post("I will protect those who cannot protect themselves.");
+    simulator.switchUser(randomBytes(32));
+    expect(simulator.revealOwnership()).toEqual(false);
+  });
+
+  it("revealOwnership fails on empty board", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    expect(() => simulator.revealOwnership()).toThrow(
+      "failed assert: No post to verify ownership of",
+    );
+  });
+
+  it("owner field not visible in ledger state", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    const ledgerState = simulator.getLedger();
+    expect("owner" in ledgerState).toEqual(false);
+  });
+
+  it("sealed owner doesn't prevent takeDown by owner", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post("Journey before destination.");
+    expect(simulator.revealOwnership()).toEqual(true);
+    simulator.takeDown();
+    const ledgerState = simulator.getLedger();
+    expect(ledgerState.state).toEqual(State.VACANT);
   });
 });
