@@ -271,7 +271,10 @@ const getFirstCompatibleWallet = (): InitialAPI | undefined => {
   if (!window.midnight) return undefined;
   return Object.values(window.midnight).find(
     (wallet): wallet is InitialAPI =>
-      !!wallet && typeof wallet === 'object' && 'apiVersion' in wallet && semver.satisfies(wallet.apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
+      !!wallet &&
+      typeof wallet === 'object' &&
+      'apiVersion' in wallet &&
+      semver.satisfies(wallet.apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
   );
 };
 
