@@ -48,7 +48,15 @@ If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop
 
 ### 3. Lace Wallet Extension (UI Only)
 
-For the web interface, install [the Lace wallet browser extension](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) from your browser's extension store.
+For the web interface, install [the Lace Midnight Preview wallet extension](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) (tested with version 2.39.0).
+
+After installing, configure the wallet:
+
+1. Open the Lace wallet extension and go to **Settings > Midnight**
+2. Set **Network** to **Preprod**
+3. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
+4. Click **Save configuration**
+5. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
 
 ## Setup Instructions
 
@@ -214,8 +222,8 @@ The UI will be available at:
 ## Useful Links
 
 - [Testnet Faucet](https://midnight.network/test-faucet) - Get testnet funds (CLI auto-funds)
-- [Midnight Documentation](https://docs.midnight.network/develop/tutorial/building) - Complete developer guide
-- [Compact Language Guide](https://docs.midnight.network/develop/reference/compact/writing) - Smart contract language reference
+- [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
+- [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
 - [Lace Wallet](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) - Browser wallet for Midnight
 
 ## Troubleshooting
@@ -244,8 +252,8 @@ The UI will be available at:
 
 This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
 
-- **Midnight Lace issue**
-  Midnight Lace Wallet version 2.38.0 has a transaction balancing issue. Users receive the error message: “Failed to clone intent.” A fix is required to resolve this problem.
+- **Midnight Lace wallet**
+  Tested with Lace Midnight Preview version 2.39.0. The wallet must be configured to use a local proof server (`http://localhost:6300`) for transaction proving.
 
 - **Proof server (ARM64 compatibility)**
   ARM64 support is available as of `midnightntwrk/proof-server:8.0.2`.
