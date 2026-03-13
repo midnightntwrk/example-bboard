@@ -2,7 +2,7 @@
 
 This project is built on the [Midnight Network](https://midnight.network/).
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.28.0-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.29.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
@@ -247,9 +247,8 @@ This repository contains several workarounds required due to current limitations
 - **Midnight Lace issue**
   Midnight Lace Wallet version 2.38.0 has a transaction balancing issue. Users receive the error message: “Failed to clone intent.” A fix is required to resolve this problem.
 
-- **Proof server (ARM64 compatibility)**  
-  The upstream proof server does not run on `arm64`. A patched version is used instead:  
-  `bricktowers/proof-server:7.0.0`.
+- **Proof server (ARM64 compatibility)**
+  ARM64 support is available as of `midnightntwrk/proof-server:8.0.2`.
 
 - **Modified testkit sources**  
   Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.
