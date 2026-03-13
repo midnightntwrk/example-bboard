@@ -221,7 +221,7 @@ The UI will be available at:
 
 ## Useful Links
 
-- [Testnet Faucet](https://midnight.network/test-faucet) - Get testnet funds (CLI auto-funds)
+- [Preprod Faucet](https://faucet.preprod.midnight.network/) - Get testnet tNIGHT tokens
 - [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
 - [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
 - [Lace Wallet](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) - Browser wallet for Midnight
