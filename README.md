@@ -48,16 +48,18 @@ If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop
 
 ### 3. Lace Wallet Extension (UI Only)
 
-For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia).
+For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
 
-After installing, configure the wallet:
+After installing, set up the Midnight wallet:
 
-1. Open the Lace wallet extension and go to **Settings > Midnight**
-2. Set **Network** to **Preprod**
-3. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
-4. Click **Save configuration**
-5. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
-6. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
+1. Open the Lace wallet extension and go to **Settings**
+2. Enable the **Beta Program** to unlock Midnight network support
+3. Create a **new wallet** — Midnight will appear as a network option
+4. Go to **Settings > Midnight** and set **Network** to **Preprod**
+5. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
+6. Click **Save configuration**
+7. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
+8. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
 
 ## Setup Instructions
 
