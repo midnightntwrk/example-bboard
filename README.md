@@ -124,7 +124,11 @@ cd ..
 ### Run the CLI
 
 ```bash
+# For preprod network
 npm run preprod-remote
+
+# For preview network
+npm run preview-remote
 ```
 
 ### Using the CLI
@@ -201,11 +205,16 @@ docker ps
 
 ### Start the Web Interface
 
-The UI can run against preprod, preview, or undeployed networks. Configure the target in `bboard-ui/.env.preprod` before starting.
+The UI can run against preprod or preview networks:
 
 ```bash
 cd bboard-ui
+
+# For preprod network
 npm run build:start
+
+# For preview network
+npm run build:start:preview
 ```
 
 The UI will be available at:
