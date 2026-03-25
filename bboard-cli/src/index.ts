@@ -45,7 +45,7 @@ import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-util
 import { TestEnvironment } from '@midnight-ntwrk/testkit-js';
 import { MidnightWalletProvider } from './midnight-wallet-provider';
 import { randomBytes } from '../../api/src/utils';
-import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
+import { unshieldedToken } from '@midnight-ntwrk/ledger-v8';
 import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
 import { generateDust } from './generate-dust';
 import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';

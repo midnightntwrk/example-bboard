@@ -14,7 +14,7 @@
  */
 
 import type { SigningKey } from '@midnight-ntwrk/compact-runtime';
-import type { ContractAddress } from '@midnight-ntwrk/ledger-v7';
+import type { ContractAddress } from '@midnight-ntwrk/ledger-v8';
 import { type PrivateStateId, type PrivateStateProvider } from '@midnight-ntwrk/midnight-js-types';
 
 /**
