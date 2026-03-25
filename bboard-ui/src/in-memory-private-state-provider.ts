@@ -40,11 +40,11 @@ export const inMemoryPrivateStateProvider = <PSI extends PrivateStateId, PS = un
 > => {
   const record = new Map<PSI, PS>();
   const signingKeys = {} as Record<ContractAddress, SigningKey>;
-  let currentContractAddress: ContractAddress | undefined;
+  let _currentContractAddress: ContractAddress | undefined;
 
   return {
     setContractAddress(address: ContractAddress): void {
-      currentContractAddress = address;
+      _currentContractAddress = address;
     },
     /**
      * Sets the private state for a given key.
