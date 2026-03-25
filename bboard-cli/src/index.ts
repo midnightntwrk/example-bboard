@@ -53,6 +53,22 @@ import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
 
+const timed = async <T>(logger: Logger, label: string, fn: () => Promise<T>): Promise<T> => {
+  const start = Date.now();
+  const timer = setInterval(() => {
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    logger.info(`${label}... ${elapsed}s`);
+  }, 5000);
+  try {
+    const result = await fn();
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    logger.info(`${label} completed in ${elapsed}s`);
+    return result;
+  } finally {
+    clearInterval(timer);
+  }
+};
+
 /* **********************************************************************
  * getBBoardLedgerState: a helper that queries the current state of
  * the data on the ledger, for a specific bulletin board contract.
@@ -94,13 +110,15 @@ const deployOrJoin = async (providers: BBoardProviders, rli: Interface, logger: 
     const choice = await rli.question(DEPLOY_OR_JOIN_QUESTION);
     switch (choice) {
       case '1':
-        api = await BBoardAPI.deploy(providers, logger);
+        api = await timed(logger, 'Deploying contract', () => BBoardAPI.deploy(providers, logger));
         logger.info(`Deployed contract at address: ${api.deployedContractAddress}`);
         return api;
-      case '2':
-        api = await BBoardAPI.join(providers, await rli.question('What is the contract address (in hex)? '), logger);
+      case '2': {
+        const addr = await rli.question('What is the contract address (in hex)? ');
+        api = await timed(logger, 'Joining contract', () => BBoardAPI.join(providers, addr, logger));
         logger.info(`Joined contract at address: ${api.deployedContractAddress}`);
         return api;
+      }
       case '3':
         logger.info('Exiting...');
         return null;
@@ -200,7 +218,7 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
         case '1': {
           const message = await rli.question(`What message do you want to post? `);
           try {
-            await bboardApi.post(message);
+            await timed(logger, 'Posting message', () => bboardApi.post(message));
           } catch (e) {
             logError(logger, e);
           }
@@ -208,7 +226,7 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
         }
         case '2':
           try {
-            await bboardApi.takeDown();
+            await timed(logger, 'Taking down message', () => bboardApi.takeDown());
           } catch (e) {
             logError(logger, e);
           }
