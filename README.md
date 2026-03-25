@@ -3,7 +3,7 @@
 This project is built on the [Midnight Network](https://midnight.network/).
 
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.30.0-1abc9c.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
 
@@ -30,7 +30,7 @@ You need Node.js (tested with current LTS):
 node --version
 ```
 
-Expected output: `v24.11.1` or higher.
+Expected output: `v24.14.0` or higher.
 
 If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
 
@@ -42,23 +42,23 @@ The [proof server](https://docs.midnight.network/develop/tutorial/using/proof-se
 docker --version
 ```
 
-Expected output: `Docker version X.X.X`.
+Expected output: `Docker version 29.3.0` or higher.
 
 If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop/). Make sure Docker Desktop is running.
 
 ### 3. Lace Wallet Extension (UI Only)
 
-For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
+For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0 or higher).
 
 After installing, set up the Midnight wallet:
 
 1. Open the Lace wallet extension and go to **Settings**
 2. Enable the **Beta Program** to unlock Midnight network support
 3. Create a **new wallet** — Midnight will appear as a network option
-4. Go to **Settings > Midnight** and set **Network** to **Preprod**
+4. Go to **Settings > Midnight** and set **Network** to **Preprod** or **Preview**
 5. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
 6. Click **Save configuration**
-7. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
+7. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/) or [Preview Faucet](https://faucet.preview.midnight.network/)
 8. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
 
 ## Setup Instructions
@@ -66,14 +66,8 @@ After installing, set up the Midnight wallet:
 ### Install Project Dependencies
 
 ```bash
-# Install root dependencies
+# Install all workspace dependencies from the root
 npm install
-
-# Install API dependencies
-cd api && npm install && cd ..
-
-# Install contract dependencies and compile
-cd contract && npm install
 ```
 
 ### Compile the Smart Contract
@@ -81,6 +75,7 @@ cd contract && npm install
 The Compact compiler (v0.30.0) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
 
 ```bash
+cd contract
 npm run compact    # Compiles the Compact contract
 npm run build      # Copies compiled files to dist/
 cd ..
@@ -105,7 +100,6 @@ Compiling 2 circuits:
 
 ```bash
 cd bboard-cli
-npm install
 npm run build
 cd ..
 ```
@@ -116,7 +110,6 @@ Only needed if you want to use the web interface:
 
 ```bash
 cd bboard-ui
-npm install
 npm run build
 cd ..
 ```
@@ -153,7 +146,7 @@ Using unshielded address: mn_addr_preprod1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlx
 Before deploying contracts, you need testnet tokens.
 
 1. Copy your wallet address from the output above
-2. Visit the [faucet](https://faucet.preprod.midnight.network/)
+2. Visit the [Preprod faucet](https://faucet.preprod.midnight.network/) or [Preview faucet](https://faucet.preview.midnight.network/)
 3. Paste your address and request funds
 4. Wait for the CLI to detect the funds (takes 2-3 minutes)
 
