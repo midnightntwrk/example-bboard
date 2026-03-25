@@ -16,7 +16,6 @@
 // import { webcrypto } from 'crypto';
 
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
-import { UtxoWithMeta as UtxoWithMetaDust } from '@midnight-ntwrk/wallet-sdk-dust-wallet';
 import { createKeystore, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
 import { Logger } from 'pino';
 import { HDWallet, Roles } from '@midnight-ntwrk/wallet-sdk-hd';
@@ -51,9 +50,13 @@ export const generateDust = async (
   const dustState = await walletFacade.dust.waitForSyncedState();
   const networkId = getNetworkId();
   const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId);
-  const utxos: UtxoWithMetaDust[] = unshieldedState.availableCoins
+  const utxos = unshieldedState.availableCoins
     .filter((coin) => !coin.meta.registeredForDustGeneration)
-    .map((utxo) => ({ ...utxo.utxo, ctime: new Date(utxo.meta.ctime) }));
+    .map((coin) => ({
+      ...coin.utxo,
+      ctime: new Date(coin.meta.ctime),
+      registeredForDustGeneration: coin.meta.registeredForDustGeneration,
+    }));
 
   if (utxos.length === 0) {
     logger.info('No unregistered UTXOs found for dust generation.');
@@ -67,7 +70,7 @@ export const generateDust = async (
     ttlIn10min,
     utxos,
     unshieldedKeystore.getPublicKey(),
-    dustState.dustAddress,
+    dustState.address,
   );
 
   const intent = registerForDustTransaction.intents?.get(1);
@@ -80,8 +83,8 @@ export const generateDust = async (
 
   const dustBalance = await rx.firstValueFrom(
     walletFacade.state().pipe(
-      rx.filter((s) => s.dust.walletBalance(new Date()) > 0n),
-      rx.map((s) => s.dust.walletBalance(new Date())),
+      rx.filter((s) => s.dust.balance(new Date()) > 0n),
+      rx.map((s) => s.dust.balance(new Date())),
     ),
   );
   logger.info(`Dust generation transaction submitted with txId: ${txId}`);

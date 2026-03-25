@@ -87,7 +87,7 @@ export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 
       Rx.tap((state: FacadeState) => {
         const shieldedBalances = state.shielded.balances || {};
         const unshieldedBalances = state.unshielded.balances || {};
-        const dustBalances = state.dust.walletBalance(new Date(Date.now())) || 0n;
+        const dustBalances = state.dust.balance(new Date(Date.now())) || 0n;
 
         logger.info(
           `Wallet balances after sync - Shielded: ${JSON.stringify(shieldedBalances)}, Unshielded: ${JSON.stringify(unshieldedBalances)}, Dust: ${dustBalances}`,
