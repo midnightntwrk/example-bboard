@@ -99,6 +99,7 @@ export const waitForUnshieldedFunds = async (
   env: EnvironmentConfiguration,
   tokenType: UnshieldedTokenType,
   fundFromFaucet = false,
+  fundingTimeout = 600_000,
 ): Promise<UnshieldedWalletState> => {
   const initialState = await getInitialUnshieldedState(logger, wallet.unshielded);
   const unshieldedAddress = UnshieldedAddress.codec.encode(getNetworkId(), initialState.address);
@@ -108,11 +109,30 @@ export const waitForUnshieldedFunds = async (
     await new FaucetClient(env.faucet, logger).requestTokens(unshieldedAddress.toString());
   }
   const initialBalance = initialState.balances[tokenType.raw];
-  if (initialBalance === undefined || initialBalance === 0n) {
-    logger.info(`Your wallet initial balance is: 0 (not yet initialized)`);
-    logger.info(`Waiting to receive tokens...`);
-    const facadeState = await syncWallet(logger, wallet);
-    return facadeState.unshielded;
+  if (initialBalance !== undefined && initialBalance > 0n) {
+    return initialState;
   }
-  return initialState;
+  logger.info(`Your wallet initial balance is: 0 (not yet initialized)`);
+  logger.info(`Waiting to receive tokens (timeout: ${fundingTimeout / 1_000}s)...`);
+  await syncWallet(logger, wallet);
+  const facadeState = await Rx.firstValueFrom(
+    wallet.state().pipe(
+      Rx.tap((state: FacadeState) => {
+        const balance = state.unshielded.balances[tokenType.raw];
+        logger.debug(`Waiting for funds... current balance: ${balance ?? 0n}`);
+      }),
+      Rx.filter((state: FacadeState) => {
+        const balance = state.unshielded.balances[tokenType.raw];
+        return balance !== undefined && balance > 0n;
+      }),
+      Rx.timeout({
+        each: fundingTimeout,
+        with: () =>
+          Rx.throwError(
+            () => new Error(`Funding timeout after ${fundingTimeout / 1_000}s. Please fund your wallet and try again.`),
+          ),
+      }),
+    ),
+  );
+  return facadeState.unshielded;
 };
