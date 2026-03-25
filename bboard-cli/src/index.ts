@@ -31,7 +31,7 @@ import {
   type BBoardProviders,
   type DeployedBBoardContract,
   type PrivateStateId,
-} from '../../api/src/index';
+} from '../../api/src/index.js';
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.js';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
@@ -44,7 +44,7 @@ import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-utils';
 import { TestEnvironment } from '@midnight-ntwrk/testkit-js';
 import { MidnightWalletProvider } from './midnight-wallet-provider';
-import { randomBytes } from '../../api/src/utils';
+import { randomBytes } from '../../api/src/utils/index.js';
 import { unshieldedToken } from '@midnight-ntwrk/ledger-v8';
 import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
 import { generateDust } from './generate-dust';
