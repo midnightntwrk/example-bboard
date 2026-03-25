@@ -320,6 +320,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
         privateStoragePasswordProvider: () => {
           return 'key-just-for-testing-here!';
         },
+        accountId: 'bboard-default',
       }),
       publicDataProvider: indexerPublicDataProvider(envConfiguration.indexer, envConfiguration.indexerWS),
       zkConfigProvider: zkConfigProvider,
