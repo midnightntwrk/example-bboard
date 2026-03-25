@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import wasm from 'vite-plugin-wasm';
 
@@ -43,6 +44,11 @@ export default defineConfig({
     ],
   },
   resolve: {
+    alias: {
+      // isomorphic-ws/browser.js only has a default export, but the SDK imports { WebSocket }.
+      // This shim re-exports globalThis.WebSocket as both default and named export.
+      'isomorphic-ws': resolve(__dirname, 'src/isomorphic-ws-shim.js'),
+    },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.wasm'],
     mainFields: ['browser', 'module', 'main'],
   },
