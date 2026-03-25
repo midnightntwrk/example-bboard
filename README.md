@@ -2,7 +2,7 @@
 
 This project is built on the [Midnight Network](https://midnight.network/).
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.29.0-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.30.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
@@ -78,7 +78,7 @@ cd contract && npm install
 
 ### Compile the Smart Contract
 
-The Compact compiler (v0.29.0) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+The Compact compiler (v0.30.0) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
 
 ```bash
 npm run compact    # Compiles the Compact contract
