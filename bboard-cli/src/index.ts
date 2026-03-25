@@ -199,11 +199,19 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
       switch (choice) {
         case '1': {
           const message = await rli.question(`What message do you want to post? `);
-          await bboardApi.post(message);
+          try {
+            await bboardApi.post(message);
+          } catch (e) {
+            logError(logger, e);
+          }
           break;
         }
         case '2':
-          await bboardApi.takeDown();
+          try {
+            await bboardApi.takeDown();
+          } catch (e) {
+            logError(logger, e);
+          }
           break;
         case '3':
           await displayLedgerState(providers, bboardApi.deployedContract, logger);
@@ -318,7 +326,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
         privateStateStoreName: config.privateStateStoreName,
         signingKeyStoreName: `${config.privateStateStoreName}-signing-keys`,
         privateStoragePasswordProvider: () => {
-          return 'key-just-for-testing-here!';
+          return 'Key-just-for-testing-here!1';
         },
         accountId: 'bboard-default',
       }),
