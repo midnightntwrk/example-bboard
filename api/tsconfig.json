@@ -8,6 +8,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "node",
+    "types": [],
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
