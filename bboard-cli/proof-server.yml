@@ -1,9 +1,7 @@
 services:
   proof-server:
-    image: 'bricktowers/proof-server:7.0.0'
+    image: midnightntwrk/proof-server:8.0.2
+    command: ['midnight-proof-server', '-v']
     container_name: "proof-server_$TESTCONTAINERS_UID"
     ports:
-      - "0:6300"
-    environment:
-      EXTRA_ARGS: -v
-      RUST_BACKTRACE: "full"
+      - '0:6300'

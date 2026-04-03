@@ -1,6 +1,8 @@
 # Bulletin Board DApp
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.28.0-1abc9c.svg)](https://shields.io/)
+This project is built on the [Midnight Network](https://midnight.network/).
+
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.29.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
@@ -46,7 +48,18 @@ If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop
 
 ### 3. Lace Wallet Extension (UI Only)
 
-For the web interface, install [the Lace wallet browser extension](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) from your browser's extension store.
+For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
+
+After installing, set up the Midnight wallet:
+
+1. Open the Lace wallet extension and go to **Settings**
+2. Enable the **Beta Program** to unlock Midnight network support
+3. Create a **new wallet** — Midnight will appear as a network option
+4. Go to **Settings > Midnight** and set **Network** to **Preprod**
+5. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
+6. Click **Save configuration**
+7. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
+8. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
 
 ## Setup Instructions
 
@@ -65,10 +78,9 @@ cd contract && npm install
 
 ### Compile the Smart Contract
 
-The Compact compiler generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+The Compact compiler (v0.29.0) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
 
 ```bash
-cd contract
 npm run compact    # Compiles the Compact contract
 npm run build      # Copies compiled files to dist/
 cd ..
@@ -114,7 +126,11 @@ cd ..
 ### Run the CLI
 
 ```bash
+# For preprod network
 npm run preprod-remote
+
+# For preview network
+npm run preview-remote
 ```
 
 ### Using the CLI
@@ -191,11 +207,16 @@ docker ps
 
 ### Start the Web Interface
 
-The UI can run against preprod, preview, or undeployed networks. Configure the target in `bboard-ui/.env.preprod` before starting.
+The UI can run against preprod or preview networks:
 
 ```bash
 cd bboard-ui
+
+# For preprod network
 npm run build:start
+
+# For preview network
+npm run build:start:preview
 ```
 
 The UI will be available at:
@@ -211,10 +232,10 @@ The UI will be available at:
 
 ## Useful Links
 
-- [Testnet Faucet](https://midnight.network/test-faucet) - Get testnet funds (CLI auto-funds)
-- [Midnight Documentation](https://docs.midnight.network/develop/tutorial/building) - Complete developer guide
-- [Compact Language Guide](https://docs.midnight.network/develop/reference/compact/writing) - Smart contract language reference
-- [Lace Wallet](https://chromewebstore.google.com/detail/lace-midnight-preview/hgeekaiplokcnmakghbdfbgnlfheichg?hl=en) - Browser wallet for Midnight
+- Get Testnet tNIGHT on [Preprod Faucet](https://faucet.preprod.midnight.network/) or [Preview Faucet](https://faucet.preview.midnight.network/)
+- [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
+- [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
+- Get Lace wallet on the [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia)
 
 ## Troubleshooting
 
@@ -242,14 +263,7 @@ The UI will be available at:
 
 This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
 
-- **Midnight Lace issue**
-  Midnight Lace Wallet version 2.38.0 has a transaction balancing issue. Users receive the error message: “Failed to clone intent.” A fix is required to resolve this problem.
-
-- **Proof server (ARM64 compatibility)**  
-  The upstream proof server does not run on `arm64`. A patched version is used instead:  
-  `bricktowers/proof-server:7.0.0`.
-
-- **Modified testkit sources**  
+- **Modified testkit sources**
   Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.
 
 - **Transaction fee configuration**  

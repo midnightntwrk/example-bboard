@@ -53,7 +53,7 @@ const isProgressStrictlyComplete = (progress: unknown): boolean => {
   return (candidate.isStrictlyComplete as () => boolean)();
 };
 
-export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000, timeout = 90_000) => {
+export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000, timeout = 180_000) => {
   logger.info('Syncing wallet...');
 
   return Rx.firstValueFrom(
