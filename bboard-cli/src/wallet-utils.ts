@@ -24,7 +24,10 @@ import { Logger } from 'pino';
 import { UnshieldedAddress } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
-export const getInitialShieldedState = async (logger: Logger, wallet: ShieldedWalletAPI): Promise<ShieldedWalletState> => {
+export const getInitialShieldedState = async (
+  logger: Logger,
+  wallet: ShieldedWalletAPI,
+): Promise<ShieldedWalletState> => {
   logger.info('Getting initial state of wallet...');
   return Rx.firstValueFrom(wallet.state);
 };
@@ -77,9 +80,7 @@ export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 
           `Wallet synced state emission (synced=${isSynced}): { shielded=${shieldedSynced}, unshielded=${unshieldedSynced}, dust=${dustSynced} }`,
         );
       }),
-      Rx.filter(
-        (state: FacadeState) => isFacadeStateSynced(state),
-      ),
+      Rx.filter((state: FacadeState) => isFacadeStateSynced(state)),
       Rx.tap(() => logger.info('Sync complete')),
       Rx.tap((state: FacadeState) => {
         const shieldedBalances = state.shielded.balances || {};
@@ -127,7 +128,9 @@ export const waitForUnshieldedFunds = async (
           );
         }),
         Rx.throttleTime(throttleTime),
-        Rx.filter((state: FacadeState) => isFacadeStateSynced(state) && (state.unshielded.balances[tokenType.raw] ?? 0n) > 0n),
+        Rx.filter(
+          (state: FacadeState) => isFacadeStateSynced(state) && (state.unshielded.balances[tokenType.raw] ?? 0n) > 0n,
+        ),
         Rx.tap(() => logger.info('Sync complete')),
         Rx.tap((state: FacadeState) => {
           const shieldedBalances = state.shielded.balances || {};

@@ -7,18 +7,6 @@ This project is built on the [Midnight Network](https://midnight.network/).
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
 
-This fork is aligned to the Midnight compatibility matrix published on March 26, 2026:
-
-- `compact 0.5.0`
-- `compactc 0.30.0`
-- `Compact Runtime 0.15.0`
-- `Compact JS 2.5.0`
-- `Midnight.js 4.0.2`
-- `testkit-js 4.0.2`
-- `Ledger 8.0.3`
-- `DApp Connector API 4.0.1`
-- `Proof Server 8.0.3`
-
 ## Project Structure
 
 ```
@@ -207,7 +195,7 @@ Each action creates a real transaction on Midnight Testnet using zero-knowledge 
 
 ## Option 2: Web UI Interface
 
-The web interface uses the same proof server and requires additional browser setup. It is not part of the primary validated flow for this fork.
+The web interface uses the same proof server and requires additional browser setup.
 
 ### Start the Proof Server (if not already running)
 
@@ -279,8 +267,8 @@ The UI will be available at:
 - Contract must be compiled before building CLI or UI
 - Fund your wallet using the testnet faucet before deploying contracts
 
-## Repository Notes
+## Implementation Notes
 
-- CLI private state is now stored per contract address, matching the `Midnight.js 4.x` private-state provider model.
-- The supported deployment target for this fork is `Preprod` through the CLI flow.
-- `standalone` is kept in the repository but is not the primary acceptance path for this migration.
+- **Transaction fee configuration**  
+  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from `@midnight-ntwrk/testkit-js` is required on the `undeployed` network. Lower values can fail with `BalanceCheckOverspend` on the node side. On remote networks, that overhead requires too much dust, so the CLI overrides it to `1_000n`.
+- CLI private state is stored per contract address, matching the `Midnight.js 4.x` private-state provider model.

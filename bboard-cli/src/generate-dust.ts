@@ -49,8 +49,7 @@ export const generateDust = async (
   const dustState = await walletFacade.dust.waitForSyncedState();
   const networkId = getNetworkId();
   const unshieldedKeystore = createKeystore(getUnshieldedSeed(walletSeed), networkId);
-  const utxos = unshieldedState.availableCoins
-    .filter((coin) => !coin.meta.registeredForDustGeneration);
+  const utxos = unshieldedState.availableCoins.filter((coin) => !coin.meta.registeredForDustGeneration);
 
   if (utxos.length === 0) {
     logger.info('No unregistered UTXOs found for dust generation.');
