@@ -166,12 +166,14 @@ npm run typecheck  # Should pass TypeScript checks
 ### Option 1: CLI Interface (Standalone Mode)
 
 **Step 1: Start the Proof Server**
+
 ```bash
 cd bboard-cli
 docker-compose -f proof-server-local.yml up -d
 ```
 
 **Step 2: Run the CLI**
+
 ```bash
 npm run standalone
 ```
@@ -183,12 +185,14 @@ This starts the bulletin board CLI with a local test network. You can interact w
 For testing with real Midnight network:
 
 **Step 1: Start the Proof Server**
+
 ```bash
 cd bboard-cli
 docker-compose -f proof-server.yml up -d
 ```
 
 **Step 2: Run the CLI**
+
 ```bash
 npm run preprod-remote
 ```
@@ -196,12 +200,14 @@ npm run preprod-remote
 ### Option 3: Web UI Interface
 
 **Step 1: Start the Proof Server**
+
 ```bash
 cd bboard-cli
 docker-compose -f proof-server.yml up -d
 ```
 
 **Step 2: Start the Development Server**
+
 ```bash
 cd bboard-ui
 npm run dev
@@ -224,21 +230,25 @@ Navigate to `http://localhost:5173`
 ## Troubleshooting
 
 ### Contract Compilation Issues
+
 - Ensure you're in the `contract` directory
 - Run `npm install` first
 - Check that the Compact compiler version matches
 
 ### CLI Build Issues
+
 - The CLI requires the contract to be compiled first
 - API integration may need updates for contract changes
 - Check TypeScript errors in `api/src/` and `bboard-cli/src/`
 
 ### Proof Server Issues
+
 - Ensure Docker is running
 - Check that port 6300 is available
 - Use `docker-compose logs` to debug container issues
 
 ### Test Failures
+
 - Runtime version mismatch is common in development environments
 - Contract logic is correct if compilation succeeds
 - Focus on `npm run compact` and `npm run typecheck` for validation
@@ -362,7 +372,7 @@ The UI will be available at:
 ## Troubleshooting
 
 | Common Issue                       | Solution                                                                                                  |
-| ---------------------------------- |-----------------------------------------------------------------------------------------------------------|
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `npm install` fails                | Ensure you're using Node.js LTS version. If you get ERESOLVE errors, try `npm install --legacy-peer-deps` |
 | Contract compilation fails         | Ensure you're in `contract` directory and run `npm run compact`                                           |
 | Network connection timeout         | CLI requires internet connection, restart if connection times out                                         |

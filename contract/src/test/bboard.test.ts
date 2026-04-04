@@ -141,7 +141,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
 
       sim.submitPost("Post");
       // Don't switch to admin - stay as agent
-      
+
       expect(() => {
         sim.approvePost();
       }).toThrow("Only admin can approve posts");
@@ -356,10 +356,10 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
       sim.approvePost();
 
       const ledger = sim.getLedger();
-      
+
       // Agent's public key is stored
       expect(ledger.publishedOwner).toEqual(sim.agentPublicKey());
-      
+
       // But we don't store admin's identity
       // Admin proves authority via secret without revealing it
     });
