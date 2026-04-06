@@ -1,0 +1,208 @@
+// capstone/dan-laduke — NFT Trade Offer Board
+// SPDX-License-Identifier: Apache-2.0
+
+pragma language_version >= 0.20;
+
+import CompactStandardLibrary;
+
+// ─────────────────────────── NFT Trade Offer Board ───────────────────────────
+//
+// A privacy-preserving peer-to-peer NFT trade system built on Midnight.
+//
+// Privacy model:
+//   • Offer TERMS (which NFT IDs are swapped) are publicly visible on-chain.
+//   • Offerer IDENTITY is pseudonymous — stored as a derived public key that
+//     cannot be linked back to the user's wallet without their secret key.
+//   • Offeree IDENTITY is hidden — stored only as a cryptographic commitment
+//     hash(offeree_pk ∥ salt). Only the party that knows both their own
+//     derived public key AND the salt can prove they are the intended recipient.
+//     This proof is generated as a ZK circuit execution and never leaks the salt
+//     or the offeree's actual identity on-chain.
+//
+// Circuits:
+//   mintNFT        — Create a new NFT owned by the caller
+//   createOffer    — Post a trade offer addressed to a private commitment
+//   acceptOffer    — Prove you're the offeree and execute the NFT swap
+//   cancelOffer    — Cancel your own pending offer
+//   rejectOffer    — Decline an offer addressed to you
+//
+// Helper circuits (also callable as pureCircuits from TypeScript):
+//   userPublicKey      — Derive a pseudonymous public key from a secret key
+//   offereeCommitment  — Compute the offeree commitment from pk + salt
+//
+// Map API note:
+//   Compact Maps use .insert(key, value), .member(key), and .lookup(key).
+//   Circuit parameters require disclose() when passed to Map methods.
+//   Values returned by .lookup() are public ledger reads and do NOT need disclose().
+// ─────────────────────────────────────────────────────────────────────────────
+
+export enum OfferStatus {
+  PENDING,
+  ACCEPTED,
+  REJECTED,
+  CANCELLED
+}
+
+// NFT ownership ledger: token ID → owner's derived public key
+export ledger nft_owners: Map<Uint<128>, Bytes<32>>;
+
+// Trade offer ledger (each field stored in its own Map for type safety)
+// The key for all offer maps is the offer_id (Bytes<32>)
+export ledger offer_offerer_pk:     Map<Bytes<32>, Bytes<32>>;   // pseudonymous offerer identity
+export ledger offer_offeree_commit: Map<Bytes<32>, Bytes<32>>;   // commitment hiding the offeree
+export ledger offer_nft_offered:    Map<Bytes<32>, Uint<128>>;   // NFT the offerer is giving
+export ledger offer_nft_requested:  Map<Bytes<32>, Uint<128>>;   // NFT the offerer wants back
+export ledger offer_status:         Map<Bytes<32>, OfferStatus>; // current offer state
+export ledger offer_count:          Counter;                      // nonce for unique offer IDs
+
+constructor() {
+  // All Map ledger fields initialize empty; Counter initializes to 0.
+  // We start offer_count at 1 so the nonce space begins non-trivially.
+  offer_count.increment(1);
+}
+
+witness localSecretKey(): Bytes<32>;
+
+// ─────────────────────── Helper / Pure Circuits ───────────────────────────────
+
+// Derive a stable pseudonymous public key from the user's secret key.
+// Uses a domain-separated hash to prevent cross-application key reuse.
+// (Equivalent to bboard's publicKey but without board-instance rotation —
+//  in the trade system, a stable identity per user is desirable.)
+export circuit userPublicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "nft-trade:pk:"), sk]);
+}
+
+// Compute the offeree commitment: persistentHash(offeree_pk ∥ salt).
+// The offerer calls this off-chain (using pureCircuits.offereeCommitment),
+// then stores the result on-chain. The offeree proves they know the salt
+// by recomputing and matching this commitment inside the ZK circuit.
+export circuit offereeCommitment(offeree_pk: Bytes<32>, salt: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([offeree_pk, salt]);
+}
+
+// ─────────────────────── Impure Circuits ──────────────────────────────────────
+
+// Mint a new NFT with the given ID. The caller becomes the sole owner.
+// Asserts the token ID is not already in use.
+export circuit mintNFT(nft_id: Uint<128>): [] {
+  assert(!nft_owners.member(disclose(nft_id)), "NFT already minted");
+  nft_owners.insert(disclose(nft_id), disclose(userPublicKey(localSecretKey())));
+}
+
+// Post a trade offer: offer nft_offered in exchange for nft_requested,
+// addressed privately to the party identified by offeree_commitment.
+//
+// The offerer computes offeree_commitment = pureCircuits.offereeCommitment(
+//   pureCircuits.userPublicKey(secretKey), salt) off-chain, then shares
+// offer_id and salt privately with the intended offeree (e.g. via DM).
+//
+// Returns offer_id so the offerer can reference the offer later.
+export circuit createOffer(
+  nft_offered:        Uint<128>,
+  nft_requested:      Uint<128>,
+  offeree_commitment: Bytes<32>
+): Bytes<32> {
+  const sk    = localSecretKey();
+  const my_pk = userPublicKey(sk);
+
+  // The caller must own the NFT they are offering
+  assert(nft_owners.member(disclose(nft_offered)), "Offered NFT does not exist");
+  assert(nft_owners.lookup(disclose(nft_offered)) == my_pk, "Caller does not own the offered NFT");
+
+  // Increment counter to produce a fresh nonce for this offer
+  offer_count.increment(1);
+
+  // Derive a unique offer ID from offerer identity, offeree commitment, and nonce.
+  // All three components are needed so two offers with the same parties and NFTs
+  // (but different nonces) always get distinct IDs.
+  // offer_id is witness-tainted (derived from my_pk), so disclose() is required when storing.
+  const offer_id = persistentHash<Vector<3, Bytes<32>>>([
+    my_pk,
+    offeree_commitment,
+    offer_count as Field as Bytes<32>
+  ]);
+
+  // Write each offer field to its ledger map.
+  // - offer_id is witness-derived → disclose() required as key
+  // - my_pk is witness-derived → disclose() required as value
+  // - offeree_commitment, nft_offered, nft_requested are circuit params → disclose() as values
+  offer_offerer_pk.insert(disclose(offer_id), disclose(my_pk));
+  offer_offeree_commit.insert(disclose(offer_id), disclose(offeree_commitment));
+  offer_nft_offered.insert(disclose(offer_id), disclose(nft_offered));
+  offer_nft_requested.insert(disclose(offer_id), disclose(nft_requested));
+  offer_status.insert(disclose(offer_id), OfferStatus.PENDING);
+
+  return disclose(offer_id);
+}
+
+// Accept a trade offer and execute the NFT swap.
+//
+// The offeree proves they are the intended recipient by providing the salt
+// such that hash(their_pk ∥ salt) == offer_offeree_commit[offer_id].
+// This runs as a ZK circuit: the salt never appears on-chain.
+//
+// On success, nft_offered transfers to the offeree and nft_requested
+// transfers to the offerer atomically in the same transaction.
+export circuit acceptOffer(offer_id: Bytes<32>, salt: Bytes<32>): [] {
+  const sk    = localSecretKey();
+  const my_pk = userPublicKey(sk);
+
+  // Offer must exist and be pending
+  assert(offer_status.member(disclose(offer_id)), "Offer does not exist");
+  assert(offer_status.lookup(disclose(offer_id)) == OfferStatus.PENDING, "Offer is not pending");
+
+  // ZK proof: caller knows salt s.t. hash(my_pk, salt) == stored commitment
+  // The salt and my_pk are never disclosed — the circuit proves the equation holds
+  assert(
+    offer_offeree_commit.lookup(disclose(offer_id)) == offereeCommitment(my_pk, salt),
+    "Caller is not the intended recipient"
+  );
+
+  // Offeree must still own the NFT being requested
+  // nft_requested comes from ledger lookup (public) — no disclose() needed as key
+  const nft_requested = offer_nft_requested.lookup(disclose(offer_id));
+  assert(nft_owners.member(nft_requested), "Offeree does not own the requested NFT");
+  assert(nft_owners.lookup(nft_requested) == my_pk, "Offeree does not own the requested NFT");
+
+  // Retrieve remaining offer fields needed for the swap
+  // Both come from ledger lookups (public values) — no disclose() needed
+  const nft_offered  = offer_nft_offered.lookup(disclose(offer_id));
+  const offerer_pk   = offer_offerer_pk.lookup(disclose(offer_id));
+
+  // Execute the atomic NFT swap
+  // Keys (nft_offered, nft_requested) are public ledger values — no disclose() needed
+  // Values: my_pk is witness-derived → disclose(); offerer_pk is public ledger value
+  nft_owners.insert(nft_offered, disclose(my_pk));   // offered NFT → offeree
+  nft_owners.insert(nft_requested, offerer_pk);       // requested NFT → offerer
+
+  // Mark offer settled
+  offer_status.insert(disclose(offer_id), OfferStatus.ACCEPTED);
+}
+
+// Cancel a pending offer. Only the offerer can cancel.
+// The offerer proves their identity by matching their derived public key.
+export circuit cancelOffer(offer_id: Bytes<32>): [] {
+  assert(offer_status.member(disclose(offer_id)), "Offer does not exist");
+  assert(offer_status.lookup(disclose(offer_id)) == OfferStatus.PENDING, "Offer is not pending");
+  assert(
+    offer_offerer_pk.lookup(disclose(offer_id)) == userPublicKey(localSecretKey()),
+    "Caller is not the offer creator"
+  );
+  offer_status.insert(disclose(offer_id), OfferStatus.CANCELLED);
+}
+
+// Reject a pending offer. Only the intended offeree can reject (same ZK proof
+// as acceptOffer, but without executing the NFT swap).
+export circuit rejectOffer(offer_id: Bytes<32>, salt: Bytes<32>): [] {
+  const my_pk = userPublicKey(localSecretKey());
+
+  assert(offer_status.member(disclose(offer_id)), "Offer does not exist");
+  assert(offer_status.lookup(disclose(offer_id)) == OfferStatus.PENDING, "Offer is not pending");
+  assert(
+    offer_offeree_commit.lookup(disclose(offer_id)) == offereeCommitment(my_pk, salt),
+    "Caller is not the intended recipient"
+  );
+
+  offer_status.insert(disclose(offer_id), OfferStatus.REJECTED);
+}

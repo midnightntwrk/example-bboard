@@ -1,31 +1,19 @@
-// This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
+// capstone/dan-laduke — NFT Trade Offer Board
 // SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-import { CompiledContract } from "@midnight-ntwrk/compact-js";
-export * from "./managed/bboard/contract/index.js";
-export * from "./witnesses";
+import { CompiledContract } from '@midnight-ntwrk/compact-js';
+export * from './managed/nft-trade/contract/index.js';
+export * from './witnesses';
 
-import * as CompiledBBoardContract from "./managed/bboard/contract/index.js";
-import * as Witnesses from "./witnesses";
+import * as CompiledNFTTradeContract from './managed/nft-trade/contract/index.js';
+import * as Witnesses from './witnesses';
 
-export const CompiledBBoardContractContract = CompiledContract.make<
-  CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>
+export const CompiledNFTTradeContractContract = CompiledContract.make<
+  CompiledNFTTradeContract.Contract<Witnesses.NFTTradePrivateState>
 >(
-  "Counter",
-  CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>,
+  'NFTTrade',
+  CompiledNFTTradeContract.Contract<Witnesses.NFTTradePrivateState>,
 ).pipe(
   CompiledContract.withWitnesses(Witnesses.witnesses),
-  CompiledContract.withCompiledFileAssets("./compiled/counter"),
+  CompiledContract.withCompiledFileAssets('./compiled/nft-trade'),
 );
