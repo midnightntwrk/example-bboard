@@ -9,6 +9,7 @@ This capstone project extends the Midnight bulletin board contract with a sophis
 ### Architecture
 
 The contract maintains two separate boards:
+
 - **Pending Board**: Single-slot board for agent submissions awaiting approval
 - **Published Board**: Single-slot board for approved, publicly visible content
 
@@ -25,11 +26,13 @@ This design choice prioritizes simplicity while demonstrating key Midnight conce
 ### Security Model
 
 **Authorization Checks**:
+
 - Agents can only withdraw their own pending posts
 - Only the admin can approve, reject, or unpublish posts
 - Admin identity is verified through cryptographic proof, not stored state
 
 **State Transitions**:
+
 - VACANT → PENDING (agent submits)
 - PENDING → VACANT (agent withdraws or admin rejects)
 - PENDING → PUBLISHED (admin approves)
@@ -38,20 +41,24 @@ This design choice prioritizes simplicity while demonstrating key Midnight conce
 ## Compact Patterns Applied
 
 ### Witnesses
+
 - `localSecretKey()`: Provides agent's secret for ownership proofs
 - `adminSecret()`: Provides admin's secret for authorization
 
 ### Ledger Fields
+
 - `export ledger`: Public state visible to all (pending/published boards, admin public key)
 - `sealed ledger`: Private state accessible only within circuits (admin secret key)
 
 ### Circuit Design
+
 - **Conditional Logic**: Circuits use assertions to enforce state transitions and authorization
 - **Public Key Derivation**: `publicKey()` circuit creates deterministic commitments
 - **Sequence Counter**: Prevents replay attacks and ensures unique derivations
 - **Disclose Calls**: Strategic disclosure of public information (messages, public keys)
 
 ### State Management
+
 - **Enum States**: Clear state machine with VACANT/PENDING/PUBLISHED transitions
 - **Maybe Types**: Proper handling of optional message fields
 - **Counter**: Sequence field for unique key derivations
@@ -89,6 +96,7 @@ This design choice prioritizes simplicity while demonstrating key Midnight conce
 **Simulator**: Updated with methods for all new circuits and user switching capabilities.
 
 **Tests**: Comprehensive test suite covering:
+
 - Happy path workflows (submit → approve → unpublish)
 - Security properties (unauthorized actions fail)
 - Edge cases (multiple agents, state transitions)
@@ -97,17 +105,20 @@ This design choice prioritizes simplicity while demonstrating key Midnight conce
 ## Privacy Analysis
 
 ### What's Private
+
 - Agent secret keys (never disclosed)
 - Admin secret key (sealed ledger field)
 - Admin identity (only proven through cryptographic verification)
 
 ### What's Public
+
 - Agent public keys (cryptographic commitments to ownership)
 - Message content (intentionally public)
 - Board states (workflow visibility)
 - Sequence counters (prevents replay attacks)
 
 ### Privacy Trade-offs
+
 - **Single-slot Design**: Limits concurrent posts but simplifies privacy analysis
 - **Public Key Disclosure**: Agents' public keys are visible, creating a public record of participation
 - **Admin Authority**: Admin actions are publicly verifiable but admin identity is private
@@ -115,12 +126,14 @@ This design choice prioritizes simplicity while demonstrating key Midnight conce
 ## Limitations and Future Extensions
 
 ### Current Limitations
+
 - Single pending slot prevents multiple simultaneous submissions
 - No post metadata (timestamps, categories)
 - Admin is a single entity (no multi-admin support)
 - No voting or community moderation features
 
 ### Potential Extensions
+
 - **Multi-slot Pending Board**: Vector-based storage for multiple pending posts
 - **Post Metadata**: Add timestamps, categories, or priority levels
 - **Multi-admin**: Support multiple admin keys with threshold authorization
@@ -132,16 +145,19 @@ This design choice prioritizes simplicity while demonstrating key Midnight conce
 The test suite exercises all circuits with both positive and negative test cases:
 
 **Positive Tests**:
+
 - Complete workflow: submit → approve → unpublish
 - Agent withdrawal of pending posts
 - Admin rejection of posts
 
 **Negative Tests**:
+
 - Unauthorized actions (wrong agent/admin attempting operations)
 - Invalid state transitions (posting to occupied board)
 - Edge cases (empty board operations)
 
 **Privacy Tests**:
+
 - Verify secrets are not exposed in ledger state
 - Confirm proper disclosure of public information
 - Validate cryptographic ownership proofs
@@ -153,6 +169,7 @@ This implementation successfully demonstrates advanced Midnight DApp patterns wh
 The design balances functionality, privacy, and simplicity, making it suitable for real-world deployment while serving as an excellent demonstration of Compact contract capabilities. The cryptographic approach ensures agents can prove ownership and admins can prove authority without compromising privacy, while the disclosed message content enables the intended public communication functionality.
 
 This capstone work showcases proficiency in:
+
 - Compact contract design and compilation
 - Privacy-preserving state management
 - Multi-user authorization patterns

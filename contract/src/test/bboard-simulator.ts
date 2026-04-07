@@ -40,17 +40,14 @@ export class BBoardSimulator {
   constructor(secretKey: Uint8Array, adminSecret: Uint8Array) {
     this.secretKey = secretKey;
     this.adminSecret = adminSecret;
-    
+
     this.contract = new Contract<BBoardPrivateState>(witnesses);
     const {
       currentPrivateState,
       currentContractState,
       currentZswapLocalState,
     } = this.contract.initialState(
-      createConstructorContext(
-        { secretKey, adminSecret },
-        "0".repeat(64),
-      ),
+      createConstructorContext({ secretKey, adminSecret }, "0".repeat(64)),
     );
     this.circuitContext = {
       currentPrivateState,
@@ -140,9 +137,7 @@ export class BBoardSimulator {
    * Admin rejects a pending post
    */
   public rejectPost(): string {
-    const result = this.contract.impureCircuits.rejectPost(
-      this.circuitContext,
-    );
+    const result = this.contract.impureCircuits.rejectPost(this.circuitContext);
     this.circuitContext = result.context;
     return result.result;
   }
@@ -151,9 +146,7 @@ export class BBoardSimulator {
    * Admin unpublishes a post (removes it from published board)
    */
   public unpublish(): string {
-    const result = this.contract.impureCircuits.unpublish(
-      this.circuitContext,
-    );
+    const result = this.contract.impureCircuits.unpublish(this.circuitContext);
     this.circuitContext = result.context;
     return result.result;
   }
