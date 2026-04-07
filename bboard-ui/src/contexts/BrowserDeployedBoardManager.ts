@@ -49,7 +49,7 @@ import {
   Transaction,
   TransactionId,
 } from '@midnight-ntwrk/ledger-v7';
-import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
+import { type BBoardPrivateState } from '../../../contract/src/index.js';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';

@@ -26,6 +26,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { WebSocket } from 'ws';
 import {
   BBoardAPI,
+  type BBoardCircuitKeys,
   type BBoardDerivedState,
   bboardPrivateStateKey,
   type BBoardProviders,
@@ -33,7 +34,7 @@ import {
   type PrivateStateId,
 } from '../../api/src/index';
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
-import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.js';
+import { ledger, type Ledger, PostState } from '../../contract/src/managed/bboard/contract/index.js';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
@@ -48,7 +49,7 @@ import { randomBytes } from '../../api/src/utils';
 import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
 import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
 import { generateDust } from './generate-dust';
-import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
+import { type BBoardPrivateState } from '../../contract/src/index.js';
 
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
@@ -87,25 +88,34 @@ You can do one of the following:
   3. Exit
 Which would you like to do? `;
 
+const logMenuErrorAndContinue = (logger: Logger, error: unknown, menuName: string): void => {
+  logError(logger, error);
+  logger.info(`Returning to the ${menuName} menu...`);
+};
+
 const deployOrJoin = async (providers: BBoardProviders, rli: Interface, logger: Logger): Promise<BBoardAPI | null> => {
   let api: BBoardAPI | null = null;
 
   while (true) {
-    const choice = await rli.question(DEPLOY_OR_JOIN_QUESTION);
-    switch (choice) {
-      case '1':
-        api = await BBoardAPI.deploy(providers, logger);
-        logger.info(`Deployed contract at address: ${api.deployedContractAddress}`);
-        return api;
-      case '2':
-        api = await BBoardAPI.join(providers, await rli.question('What is the contract address (in hex)? '), logger);
-        logger.info(`Joined contract at address: ${api.deployedContractAddress}`);
-        return api;
-      case '3':
-        logger.info('Exiting...');
-        return null;
-      default:
-        logger.error(`Invalid choice: ${choice}`);
+    try {
+      const choice = await rli.question(DEPLOY_OR_JOIN_QUESTION);
+      switch (choice) {
+        case '1':
+          api = await BBoardAPI.deploy(providers, logger);
+          logger.info(`Deployed contract at address: ${api.deployedContractAddress}`);
+          return api;
+        case '2':
+          api = await BBoardAPI.join(providers, await rli.question('What is the contract address (in hex)? '), logger);
+          logger.info(`Joined contract at address: ${api.deployedContractAddress}`);
+          return api;
+        case '3':
+          logger.info('Exiting...');
+          return null;
+        default:
+          logger.error(`Invalid choice: ${choice}`);
+      }
+    } catch (error) {
+      logMenuErrorAndContinue(logger, error, 'deploy/join');
     }
   }
 };
@@ -125,12 +135,18 @@ const displayLedgerState = async (
   if (ledgerState === null) {
     logger.info(`There is no bulletin board contract deployed at ${contractAddress}`);
   } else {
-    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
-    const latestMessage = !ledgerState.message.is_some ? 'none' : ledgerState.message.value;
-    logger.info(`Current state is: '${boardState}'`);
-    logger.info(`Current message is: '${latestMessage}'`);
+    logger.info(`Pending state is: '${PostState[ledgerState.pendingState]}'`);
+    logger.info(
+      `Pending message is: '${ledgerState.pendingMessage.is_some ? ledgerState.pendingMessage.value : 'none'}'`,
+    );
+    logger.info(`Pending owner is: '${toHex(ledgerState.pendingOwner)}'`);
+    logger.info(`Published state is: '${PostState[ledgerState.publishedState]}'`);
+    logger.info(
+      `Published message is: '${ledgerState.publishedMessage.is_some ? ledgerState.publishedMessage.value : 'none'}'`,
+    );
+    logger.info(`Published owner is: '${toHex(ledgerState.publishedOwner)}'`);
     logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${toHex(ledgerState.owner)}'`);
+    logger.info(`Current admin public key is: '${toHex(ledgerState.adminPubKey)}'`);
   }
 };
 
@@ -144,6 +160,7 @@ const displayPrivateState = async (providers: BBoardProviders, logger: Logger): 
     logger.info(`There is no existing bulletin board private state`);
   } else {
     logger.info(`Current secret key is: ${toHex(privateState.secretKey)}`);
+    logger.info(`Current admin secret is: ${toHex(privateState.adminSecret)}`);
   }
 };
 
@@ -158,12 +175,16 @@ const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger
   if (ledgerState === undefined) {
     logger.info(`No bulletin board state currently available`);
   } else {
-    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
-    const latestMessage = ledgerState.state === State.OCCUPIED ? ledgerState.message : 'none';
-    logger.info(`Current state is: '${boardState}'`);
-    logger.info(`Current message is: '${latestMessage}'`);
+    logger.info(`Current selected state is: '${PostState[ledgerState.state]}'`);
+    logger.info(`Current selected message is: '${ledgerState.message ?? 'none'}'`);
     logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
+    logger.info(`Current admin status is: '${ledgerState.isAdmin ? 'admin' : 'non-admin'}'`);
+    logger.info(
+      `Pending state is: '${PostState[ledgerState.pendingState]}' with owner '${ledgerState.pendingIsOwner ? 'you' : 'not you'}'`,
+    );
+    logger.info(
+      `Published state is: '${PostState[ledgerState.publishedState]}' with owner '${ledgerState.publishedIsOwner ? 'you' : 'not you'}'`,
+    );
   }
 };
 
@@ -175,12 +196,15 @@ const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger
 
 const MAIN_LOOP_QUESTION = `
 You can do one of the following:
-  1. Post a message
-  2. Take down your message
-  3. Display the current ledger state (known by everyone)
-  4. Display the current private state (known only to this DApp instance)
-  5. Display the current derived state (known only to this DApp instance)
-  6. Exit
+  1. Submit a pending post
+  2. Withdraw your pending post
+  3. Approve the pending post as admin
+  4. Reject the pending post as admin
+  5. Unpublish the published post as admin
+  6. Display the current ledger state (known by everyone)
+  7. Display the current private state (known only to this DApp instance)
+  8. Display the current derived state (known only to this DApp instance)
+  9. Exit
 Which would you like to do? `;
 
 const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logger): Promise<void> => {
@@ -195,30 +219,43 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
   const subscription = bboardApi.state$.subscribe(stateObserver);
   try {
     while (true) {
-      const choice = await rli.question(MAIN_LOOP_QUESTION);
-      switch (choice) {
-        case '1': {
-          const message = await rli.question(`What message do you want to post? `);
-          await bboardApi.post(message);
-          break;
+      try {
+        const choice = await rli.question(MAIN_LOOP_QUESTION);
+        switch (choice) {
+          case '1': {
+            const message = await rli.question(`What message do you want to submit for approval? `);
+            await bboardApi.post(message);
+            break;
+          }
+          case '2':
+            await bboardApi.takeDown();
+            break;
+          case '3':
+            await bboardApi.approvePending();
+            break;
+          case '4':
+            await bboardApi.rejectPending();
+            break;
+          case '5':
+            await bboardApi.unpublishPublished();
+            break;
+          case '6':
+            await displayLedgerState(providers, bboardApi.deployedContract, logger);
+            break;
+          case '7':
+            await displayPrivateState(providers, logger);
+            break;
+          case '8':
+            displayDerivedState(currentState, logger);
+            break;
+          case '9':
+            logger.info('Exiting...');
+            return;
+          default:
+            logger.error(`Invalid choice: ${choice}`);
         }
-        case '2':
-          await bboardApi.takeDown();
-          break;
-        case '3':
-          await displayLedgerState(providers, bboardApi.deployedContract, logger);
-          break;
-        case '4':
-          await displayPrivateState(providers, logger);
-          break;
-        case '5':
-          displayDerivedState(currentState, logger);
-          break;
-        case '6':
-          logger.info('Exiting...');
-          return;
-        default:
-          logger.error(`Invalid choice: ${choice}`);
+      } catch (error) {
+        logMenuErrorAndContinue(logger, error, 'main');
       }
     }
   } finally {
@@ -312,7 +349,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
       }
     }
 
-    const zkConfigProvider = new NodeZkConfigProvider<'post' | 'takeDown'>(config.zkConfigPath);
+    const zkConfigProvider = new NodeZkConfigProvider<BBoardCircuitKeys>(config.zkConfigPath);
     const providers: BBoardProviders = {
       privateStateProvider: levelPrivateStateProvider<PrivateStateId, BBoardPrivateState>({
         privateStateStoreName: config.privateStateStoreName,

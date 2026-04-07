@@ -10,7 +10,8 @@
       "bboard-cli",
       "bboard-ui",
       "api",
-      "contract"
+      "contract",
+      "mcp-server"
     ]
   },
   "dependencies": {

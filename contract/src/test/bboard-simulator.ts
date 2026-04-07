@@ -36,6 +36,7 @@ export class BBoardSimulator {
   circuitContext: CircuitContext<BBoardPrivateState>;
   private secretKey: Uint8Array;
   private adminSecret: Uint8Array;
+  private readonly noAdminSecret = new Uint8Array(32);
 
   constructor(secretKey: Uint8Array, adminSecret: Uint8Array) {
     this.secretKey = secretKey;
@@ -58,6 +59,7 @@ export class BBoardSimulator {
         sampleContractAddress(),
       ),
     };
+    this.switchToAgentMode();
   }
 
   /**
@@ -67,7 +69,7 @@ export class BBoardSimulator {
     this.secretKey = secretKey;
     this.circuitContext.currentPrivateState = {
       secretKey,
-      adminSecret: this.adminSecret,
+      adminSecret: this.noAdminSecret,
     };
   }
 
@@ -87,7 +89,7 @@ export class BBoardSimulator {
   public switchToAgentMode() {
     this.circuitContext.currentPrivateState = {
       secretKey: this.secretKey,
-      adminSecret: this.adminSecret,
+      adminSecret: this.noAdminSecret,
     };
   }
 

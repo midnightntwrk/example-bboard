@@ -15,10 +15,10 @@
 
 import { CompiledContract } from "@midnight-ntwrk/compact-js";
 export * from "./managed/bboard/contract/index.js";
-export * from "./witnesses";
+export * from "./witnesses.js";
 
 import * as CompiledBBoardContract from "./managed/bboard/contract/index.js";
-import * as Witnesses from "./witnesses";
+import * as Witnesses from "./witnesses.js";
 
 export const CompiledBBoardContractContract = CompiledContract.make<
   CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>

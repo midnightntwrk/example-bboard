@@ -21,7 +21,7 @@
 
 import { type MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import { type FoundContract } from '@midnight-ntwrk/midnight-js-contracts';
-import type { State, BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index';
+import type { PostState, BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index.js';
 
 export const bboardPrivateStateKey = 'bboardPrivateState';
 export type PrivateStateId = typeof bboardPrivateStateKey;
@@ -81,9 +81,16 @@ export type DeployedBBoardContract = FoundContract<BBoardContract>;
  * A type that represents the derived combination of public (or ledger), and private state.
  */
 export type BBoardDerivedState = {
-  readonly state: State;
+  readonly state: PostState;
   readonly sequence: bigint;
   readonly message: string | undefined;
+  readonly pendingState: PostState;
+  readonly pendingMessage: string | undefined;
+  readonly pendingIsOwner: boolean;
+  readonly publishedState: PostState;
+  readonly publishedMessage: string | undefined;
+  readonly publishedIsOwner: boolean;
+  readonly isAdmin: boolean;
 
   /**
    * A readonly flag that determines if the current message was posted by the current user.
