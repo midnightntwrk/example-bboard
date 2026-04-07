@@ -1,9 +1,9 @@
 import http from 'node:http';
 import { stderr } from 'node:process';
+import { startHttpServer as startConfiguredHttpServer } from './http-server.js';
 import { BBoardMcpServer } from './server.js';
-import { JSON_RPC_VERSION, ErrorCodes, type JsonRpcMessage, type JsonRpcResponse, toJsonError } from './protocol.js';
 import { ProofServerManager } from './proof-server-manager.js';
-import { StdioTransport, type McpConnection } from './transports.js';
+import { StdioTransport } from './transports.js';
 
 type LaunchOptions = {
   transport: 'stdio' | 'http';
@@ -69,8 +69,6 @@ const server =
 
 let httpServer: http.Server | undefined;
 
-const HTTP_ALLOWED_RPC_PATHS = new Set(['/', '/mcp', '/mcp/']);
-
 const logStderr = (message: string, extra?: Record<string, unknown>): void => {
   const line = extra ? `${message} ${JSON.stringify(extra)}\n` : `${message}\n`;
   stderr.write(line);
@@ -85,127 +83,14 @@ const proofServerManager = new ProofServerManager({
 
 process.env.BBOARD_PROOF_SERVER_URL = options.proofServerUrl;
 
-const getRequestUrl = (request: http.IncomingMessage): URL => {
-  const host = request.headers.host ?? `${options.host}:${options.port}`;
-  const rawUrl = request.url ?? '/';
-  try {
-    return new URL(rawUrl, `http://${host}`);
-  } catch {
-    return new URL('/', `http://${host}`);
-  }
-};
-
-const isRpcPath = (pathname: string): boolean => HTTP_ALLOWED_RPC_PATHS.has(pathname);
-
-const readRequestBody = async (request: http.IncomingMessage): Promise<string> => {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-
-  return Buffer.concat(chunks).toString('utf8');
-};
-
-const sendHttpJson = (response: http.ServerResponse, statusCode: number, body: JsonRpcResponse | Record<string, unknown>) => {
-  response.writeHead(statusCode, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  });
-  response.end(JSON.stringify(body));
-};
-
 const startHttpServer = async (): Promise<void> => {
-  httpServer = http.createServer(async (request, response) => {
-    const requestUrl = getRequestUrl(request);
-    const pathname = requestUrl.pathname;
-
-    logStderr('[mcp-http] request', {
-      method: request.method,
-      url: request.url ?? '/',
-      pathname,
-      origin: request.headers.origin ?? null,
-      userAgent: request.headers['user-agent'] ?? null,
-    });
-
-    if (request.method === 'OPTIONS') {
-      response.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      });
-      response.end();
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/health') {
-      sendHttpJson(response, 200, {
-        ok: true,
-        transport: 'http',
-        name: 'example-bboard-mcp-server',
-      });
-      return;
-    }
-
-    if (request.method === 'GET' && pathname === '/') {
-      sendHttpJson(response, 200, {
-        ok: true,
-        message: 'Use POST /mcp for JSON-RPC MCP requests. Use GET /health for health checks.',
-      });
-      return;
-    }
-
-    if (request.method !== 'POST' || !isRpcPath(pathname)) {
-      logStderr('[mcp-http] 404', {
-        method: request.method,
-        url: request.url ?? '/',
-        pathname,
-      });
-      sendHttpJson(response, 404, { ok: false, error: 'Not found' });
-      return;
-    }
-
-    let replied = false;
-    const connection: McpConnection = {
-      id: request.socket.remoteAddress ? `http:${request.socket.remoteAddress}` : 'http',
-      send: (message: JsonRpcMessage) => {
-        replied = true;
-        sendHttpJson(response, 200, message as JsonRpcResponse);
-      },
-    };
-
-    try {
-      const rawBody = await readRequestBody(request);
-      logStderr('[mcp-http] body', { body: rawBody });
-      const message = JSON.parse(rawBody) as JsonRpcMessage;
+  httpServer = await startConfiguredHttpServer({
+    host: options.host,
+    port: options.port,
+    log: logStderr,
+    onMessage: async (connection, message) => {
       await server.processIncomingMessage(connection, message);
-
-      if (!replied) {
-        response.writeHead(204, {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        });
-        response.end();
-      }
-    } catch (error) {
-      logStderr('[mcp-http] error', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        url: request.url ?? '/',
-      });
-      const fallbackId = 'id' in (error as object) ? undefined : null;
-      sendHttpJson(response, 400, {
-        jsonrpc: JSON_RPC_VERSION,
-        id: fallbackId,
-        error: toJsonError(error ?? new Error(`Invalid request body`)),
-      });
-    }
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    httpServer?.on('error', reject);
-    httpServer?.listen(options.port, options.host, () => resolve());
+    },
   });
 };
 
