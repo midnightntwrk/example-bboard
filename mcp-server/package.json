@@ -10,11 +10,12 @@
   "types": "./dist/mcp-server/src/index.d.ts",
   "scripts": {
     "build": "rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ../contract/src/managed ./dist/contract/src/managed",
-    "ci": "npm run typecheck && npm run build",
+    "ci": "npm run typecheck && npm run build && npm run test",
     "start": "node --experimental-specifier-resolution=node ./dist/mcp-server/src/index.js",
     "start:http:auto-proof": "node --experimental-specifier-resolution=node ./dist/mcp-server/src/index.js --http --host 127.0.0.1 --port 8787 --start-proof-server",
     "start:http": "node --experimental-specifier-resolution=node ./dist/mcp-server/src/index.js --http --host 127.0.0.1 --port 8787",
     "start:dev": "node --experimental-specifier-resolution=node --loader ts-node/esm src/index.ts",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }
