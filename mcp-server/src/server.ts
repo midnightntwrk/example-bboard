@@ -23,6 +23,23 @@ import { BBoardSessionManager } from './session-manager.js';
 
 type ToolHandler = (args: Record<string, unknown>) => Promise<JsonValue>;
 
+export type BBoardSessionService = {
+  createSession: BBoardSessionManager['createSession'];
+  getSessionSummary: BBoardSessionManager['getSessionSummary'];
+  setAdminSecret: BBoardSessionManager['setAdminSecret'];
+  waitForWalletReady: BBoardSessionManager['waitForWalletReady'];
+  deployBoard: BBoardSessionManager['deployBoard'];
+  joinBoard: BBoardSessionManager['joinBoard'];
+  getBoardState: BBoardSessionManager['getBoardState'];
+  submitPost: BBoardSessionManager['submitPost'];
+  withdrawPending: BBoardSessionManager['withdrawPending'];
+  approvePending: BBoardSessionManager['approvePending'];
+  rejectPending: BBoardSessionManager['rejectPending'];
+  unpublishPublished: BBoardSessionManager['unpublishPublished'];
+  closeSession: BBoardSessionManager['closeSession'];
+  closeAll: BBoardSessionManager['closeAll'];
+};
+
 type ToolDefinition = {
   name: string;
   description: string;
@@ -61,7 +78,6 @@ type BBoardMcpServerOptions = {
 };
 
 export class BBoardMcpServer {
-  private readonly sessions = new BBoardSessionManager();
   private readonly initializedConnections = new Set<string>();
   private readonly requireInitialize: boolean;
 
@@ -275,6 +291,7 @@ export class BBoardMcpServer {
   constructor(
     private readonly transport: McpTransport,
     options: BBoardMcpServerOptions = {},
+    private readonly sessions: BBoardSessionService = new BBoardSessionManager(),
   ) {
     this.requireInitialize = options.requireInitialize ?? true;
   }

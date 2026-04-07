@@ -6,6 +6,10 @@ type ProofServerManagerOptions = {
   autoStart: boolean;
   shutdownOnExit: boolean;
   stderrLog: (message: string, extra?: Record<string, unknown>) => void;
+  startupTimeoutMs?: number;
+  pollIntervalMs?: number;
+  runCommand?: (command: string, args: string[], cwd: string) => Promise<void>;
+  sleep?: (ms: number) => Promise<void>;
 };
 
 const ROOT_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..', '..');
@@ -57,19 +61,23 @@ export class ProofServerManager {
       url: this.options.url,
       composeFile: COMPOSE_FILE,
     });
-    await runCommand('docker', ['compose', '-f', COMPOSE_FILE, 'up', '-d'], ROOT_DIR);
+    const runCompose = this.options.runCommand ?? runCommand;
+    const sleep = this.options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    await runCompose('docker', ['compose', '-f', COMPOSE_FILE, 'up', '-d'], ROOT_DIR);
     this.startedByManager = true;
 
-    const deadline = Date.now() + 60_000;
+    const startupTimeoutMs = this.options.startupTimeoutMs ?? 60_000;
+    const pollIntervalMs = this.options.pollIntervalMs ?? 1_000;
+    const deadline = Date.now() + startupTimeoutMs;
     while (Date.now() < deadline) {
       if (await this.isReachable()) {
         this.options.stderrLog('[proof-server] ready', { url: this.options.url });
         return;
       }
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      await sleep(pollIntervalMs);
     }
 
-    throw new Error(`Proof server did not become reachable at ${this.options.url} within 60s`);
+    throw new Error(`Proof server did not become reachable at ${this.options.url} within ${startupTimeoutMs}ms`);
   }
 
   async shutdown(): Promise<void> {
@@ -80,7 +88,8 @@ export class ProofServerManager {
     this.options.stderrLog('[proof-server] stopping docker compose', {
       composeFile: COMPOSE_FILE,
     });
-    await runCommand('docker', ['compose', '-f', COMPOSE_FILE, 'down'], ROOT_DIR);
+    const runCompose = this.options.runCommand ?? runCommand;
+    await runCompose('docker', ['compose', '-f', COMPOSE_FILE, 'down'], ROOT_DIR);
   }
 
   private async isReachable(): Promise<boolean> {

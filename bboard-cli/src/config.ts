@@ -33,6 +33,7 @@ export interface Config {
 }
 
 export const currentDir = path.resolve(new URL(import.meta.url).pathname, '..');
+type MidnightWalletProvider = Awaited<ReturnType<TestEnvironment['getMidnightWalletProvider']>>;
 
 const getProofServerOverride = (network: 'preview' | 'preprod'): string | undefined => {
   const networkSpecific =
@@ -57,16 +58,25 @@ class ManualRemoteTestEnvironment extends TestEnvironment {
     });
   }
 
-  async shutdown(): Promise<void> {
-    return;
+  shutdown(): Promise<void> {
+    return Promise.resolve();
   }
 
-  async start(): Promise<EnvironmentConfiguration> {
-    return this.configuration;
+  start(): Promise<EnvironmentConfiguration> {
+    return Promise.resolve(this.configuration);
   }
 
-  async startMidnightWalletProviders(amount = 1): Promise<Awaited<ReturnType<TestEnvironment['getMidnightWalletProvider']>>[]> {
-    return await Promise.all(Array.from({ length: amount }, async () => await this.getMidnightWalletProvider()));
+  async startMidnightWalletProviders(amount = 1): Promise<MidnightWalletProvider[]> {
+    const providers: Array<Promise<MidnightWalletProvider>> = [];
+    for (let index = 0; index < amount; index += 1) {
+      // The upstream SDK method is weakly typed; normalize it locally to the concrete provider promise type.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const walletProvider: MidnightWalletProvider = await this.getMidnightWalletProvider();
+      providers.push(Promise.resolve(walletProvider));
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const walletProviders: MidnightWalletProvider[] = await Promise.all(providers);
+    return walletProviders;
   }
 
   getEnvironmentConfiguration(): EnvironmentConfiguration {
@@ -148,7 +158,9 @@ export class PreviewTestEnvironment extends RemoteTestEnvironment {
 
     const container = this.proofServerContainer as { getUrl(): string } | undefined;
     if (!container) {
-      throw new Error('Proof server container is not available. Set BBOARD_PROOF_SERVER_URL to use an existing proof server.');
+      throw new Error(
+        'Proof server container is not available. Set BBOARD_PROOF_SERVER_URL to use an existing proof server.',
+      );
     }
     return container.getUrl();
   }
@@ -180,7 +192,9 @@ export class PreprodTestEnvironment extends RemoteTestEnvironment {
 
     const container = this.proofServerContainer as { getUrl(): string } | undefined;
     if (!container) {
-      throw new Error('Proof server container is not available. Set BBOARD_PROOF_SERVER_URL to use an existing proof server.');
+      throw new Error(
+        'Proof server container is not available. Set BBOARD_PROOF_SERVER_URL to use an existing proof server.',
+      );
     }
     return container.getUrl();
   }
