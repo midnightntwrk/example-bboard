@@ -1,17 +1,6 @@
 // This file is part of midnightntwrk/example-bboard.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 import { BBoardSimulator } from "./bboard-simulator.js";
 import {
@@ -20,130 +9,359 @@ import {
 } from "@midnight-ntwrk/midnight-js-network-id";
 import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
-import { State } from "../managed/bboard/contract/index.js";
+import { PostState } from "../managed/bboard/contract/index.js";
 
 setNetworkId("undeployed" as NetworkId);
 
-describe("BBoard smart contract", () => {
-  it("generates initial ledger state deterministically", () => {
-    const key = randomBytes(32);
-    const simulator0 = new BBoardSimulator(key);
-    const simulator1 = new BBoardSimulator(key);
-    expect(simulator0.getLedger()).toEqual(simulator1.getLedger());
+describe("Extended BBoard Contract - Admin Approval Workflow", () => {
+  const adminSecret = randomBytes(32);
+
+  it("initializes with both boards in VACANT state", () => {
+    const agentSecret = randomBytes(32);
+    const sim = new BBoardSimulator(agentSecret, adminSecret);
+    const ledger = sim.getLedger();
+
+    expect(ledger.pendingState).toEqual(PostState.VACANT);
+    expect(ledger.publishedState).toEqual(PostState.VACANT);
+    expect(ledger.pendingMessage.is_some).toEqual(false);
+    expect(ledger.publishedMessage.is_some).toEqual(false);
   });
 
-  it("properly initializes ledger state and private state", () => {
-    const key = randomBytes(32);
-    const simulator = new BBoardSimulator(key);
-    const initialLedgerState = simulator.getLedger();
-    expect(initialLedgerState.sequence).toEqual(1n);
-    expect(initialLedgerState.message.is_some).toEqual(false);
-    expect(initialLedgerState.message.value).toEqual("");
-    expect(initialLedgerState.owner).toEqual(new Uint8Array(32));
-    expect(initialLedgerState.state).toEqual(State.VACANT);
-    const initialPrivateState = simulator.getPrivateState();
-    expect(initialPrivateState).toEqual({ secretKey: key });
+  describe("Agent Posting (submitPost)", () => {
+    it("allows an agent to submit a post to the pending board", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      const message = "Hello from agent 1";
+      sim.submitPost(message);
+      const ledger = sim.getLedger();
+
+      expect(ledger.pendingState).toEqual(PostState.PENDING);
+      expect(ledger.pendingMessage.is_some).toEqual(true);
+      expect(ledger.pendingMessage.value).toEqual(message);
+      expect(ledger.pendingOwner).toEqual(sim.agentPublicKey());
+    });
+
+    it("prevents posting when pending board is occupied", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.submitPost("First post");
+      expect(() => {
+        sim.submitPost("Second post");
+      }).toThrow("Pending board is occupied");
+    });
+
+    it("stores the agent's public key as owner", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const expectedOwner = sim.agentPublicKey();
+
+      sim.submitPost("Test message");
+      const ledger = sim.getLedger();
+
+      expect(ledger.pendingOwner).toEqual(expectedOwner);
+    });
   });
 
-  it("lets you set a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const message =
-      "Szeth-son-son-Vallano, Truthless of Shinovar, wore white on the day he was to kill a king";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(1n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  describe("Agent Withdrawal (withdrawPending)", () => {
+    it("allows an agent to withdraw their own pending post", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const message = "Post to withdraw";
+
+      sim.submitPost(message);
+      const withdrawn = sim.withdrawPending();
+      const ledger = sim.getLedger();
+
+      expect(withdrawn).toEqual(message);
+      expect(ledger.pendingState).toEqual(PostState.VACANT);
+      expect(ledger.pendingMessage.is_some).toEqual(false);
+    });
+
+    it("prevents withdrawing from an empty pending board", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      expect(() => {
+        sim.withdrawPending();
+      }).toThrow("No pending post to withdraw");
+    });
+
+    it("prevents an agent from withdrawing another agent's post", () => {
+      const agent1Secret = randomBytes(32);
+      const agent2Secret = randomBytes(32);
+      const sim = new BBoardSimulator(agent1Secret, adminSecret);
+
+      sim.submitPost("Agent 1's post");
+
+      // Switch to agent 2
+      sim.switchToAgent(agent2Secret);
+
+      expect(() => {
+        sim.withdrawPending();
+      }).toThrow("Cannot withdraw another agent's post");
+    });
   });
 
-  it("lets you take down a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const initialPublicKey = simulator.publicKey();
-    const message =
-      "Prince Raoden of Arelon awoke early that morning, completely unaware that he had been damned for all eternity.";
-    simulator.post(message);
-    simulator.takeDown();
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(false);
-    expect(ledgerState.message.value).toEqual("");
-    // Technically the circuit doesn't clear the previous owner
-    expect(ledgerState.owner).toEqual(initialPublicKey);
-    expect(ledgerState.state).toEqual(State.VACANT);
+  describe("Admin Approval (approvePost)", () => {
+    it("allows admin to approve a pending post", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const message = "Post to approve";
+
+      sim.submitPost(message);
+      sim.switchToAdmin();
+      const approved = sim.approvePost();
+      const ledger = sim.getLedger();
+
+      expect(approved).toEqual(message);
+      expect(ledger.pendingState).toEqual(PostState.VACANT);
+      expect(ledger.publishedState).toEqual(PostState.PUBLISHED);
+      expect(ledger.publishedMessage.is_some).toEqual(true);
+      expect(ledger.publishedMessage.value).toEqual(message);
+    });
+
+    it("transfers owner information to published board", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const agentPubKey = sim.agentPublicKey();
+
+      sim.submitPost("Test");
+      sim.switchToAdmin();
+      sim.approvePost();
+      const ledger = sim.getLedger();
+
+      expect(ledger.publishedOwner).toEqual(agentPubKey);
+    });
+
+    it("prevents non-admin from approving posts", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.submitPost("Post");
+      // Don't switch to admin - stay as agent
+      
+      expect(() => {
+        sim.approvePost();
+      }).toThrow("Only admin can approve posts");
+    });
+
+    it("prevents approving when no pending post exists", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.switchToAdmin();
+      expect(() => {
+        sim.approvePost();
+      }).toThrow("No pending post to approve");
+    });
   });
 
-  it("lets you post another message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    simulator.post("Life before Death.");
-    simulator.takeDown();
-    const message = "Strength before Weakness.";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  describe("Admin Rejection (rejectPost)", () => {
+    it("allows admin to reject a pending post", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const message = "Post to reject";
+
+      sim.submitPost(message);
+      sim.switchToAdmin();
+      const rejected = sim.rejectPost();
+      const ledger = sim.getLedger();
+
+      expect(rejected).toEqual(message);
+      expect(ledger.pendingState).toEqual(PostState.VACANT);
+      expect(ledger.pendingMessage.is_some).toEqual(false);
+    });
+
+    it("prevents non-admin from rejecting posts", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.submitPost("Post");
+      // Stay as agent
+
+      expect(() => {
+        sim.rejectPost();
+      }).toThrow("Only admin can reject posts");
+    });
+
+    it("prevents rejecting when no pending post exists", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.switchToAdmin();
+      expect(() => {
+        sim.rejectPost();
+      }).toThrow("No pending post to reject");
+    });
   });
 
-  it("lets a different user post a message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Remember, the past need not become our future as well.");
-    simulator.takeDown();
-    simulator.switchUser(randomBytes(32));
-    const message = "Joy was more than just an absence of discomfort.";
-    simulator.post(message);
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  describe("Admin Unpublish (unpublish)", () => {
+    it("allows admin to remove a published post", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const message = "Post to unpublish";
+
+      sim.submitPost(message);
+      sim.switchToAdmin();
+      sim.approvePost();
+      const unpublished = sim.unpublish();
+      const ledger = sim.getLedger();
+
+      expect(unpublished).toEqual(message);
+      expect(ledger.publishedState).toEqual(PostState.VACANT);
+      expect(ledger.publishedMessage.is_some).toEqual(false);
+    });
+
+    it("prevents non-admin from unpublishing", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.submitPost("Post");
+      sim.switchToAdmin();
+      sim.approvePost();
+
+      // Switch back to agent
+      sim.switchToAgent(agentSecret);
+
+      expect(() => {
+        sim.unpublish();
+      }).toThrow("Only admin can unpublish posts");
+    });
+
+    it("prevents unpublishing when no published post exists", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.switchToAdmin();
+      expect(() => {
+        sim.unpublish();
+      }).toThrow("No published post to remove");
+    });
   });
 
-  it("doesn't let the same user post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "My name is Stephen Leeds, and I am perfectly sane. My hallucinations, however, are all quite mad.",
-    );
-    expect(() =>
-      simulator.post(
-        "You should know by now that I've already had greatness. I traded it for mediocrity and some measure of sanity.",
-      ),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
+  describe("Complex Workflow Scenarios", () => {
+    it("handles full workflow: submit -> approve -> unpublish", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const message = "Complete workflow";
+
+      // Agent submits
+      sim.submitPost(message);
+      let ledger = sim.getLedger();
+      expect(ledger.pendingState).toEqual(PostState.PENDING);
+
+      // Admin approves
+      sim.switchToAdmin();
+      sim.approvePost();
+      ledger = sim.getLedger();
+      expect(ledger.publishedState).toEqual(PostState.PUBLISHED);
+      expect(ledger.pendingState).toEqual(PostState.VACANT);
+
+      // Admin unpublishes
+      sim.unpublish();
+      ledger = sim.getLedger();
+      expect(ledger.publishedState).toEqual(PostState.VACANT);
+    });
+
+    it("handles workflow: submit -> reject -> submit again", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      // First submission
+      sim.submitPost("First attempt");
+      sim.switchToAdmin();
+      const rejected = sim.rejectPost();
+      expect(rejected).toEqual("First attempt");
+
+      // Now the board should be empty, agent can post again
+      sim.switchToAgent(agentSecret);
+      let ledger = sim.getLedger();
+      expect(ledger.pendingState).toEqual(PostState.VACANT);
+
+      // Second submission
+      sim.submitPost("Second attempt");
+      ledger = sim.getLedger();
+      expect(ledger.pendingMessage.value).toEqual("Second attempt");
+    });
+
+    it("tracks sequence counter through multiple operations", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      let ledger = sim.getLedger();
+      const initialSeq = ledger.sequence;
+
+      // Submit and approve
+      sim.submitPost("Post 1");
+      sim.switchToAdmin();
+      sim.approvePost();
+      ledger = sim.getLedger();
+      expect(ledger.sequence > initialSeq).toBe(true);
+
+      // Unpublish
+      const seqAfterApproval = ledger.sequence;
+      sim.unpublish();
+      ledger = sim.getLedger();
+      expect(ledger.sequence > seqAfterApproval).toBe(true);
+    });
+
+    it("prevents race conditions: agent cannot post while pending exists", () => {
+      const agent1Secret = randomBytes(32);
+      const agent2Secret = randomBytes(32);
+      const sim = new BBoardSimulator(agent1Secret, adminSecret);
+
+      // Agent 1 posts
+      sim.submitPost("Agent 1 post");
+
+      // Agent 2 cannot post while pending board is occupied
+      sim.switchToAgent(agent2Secret);
+      expect(() => {
+        sim.submitPost("Agent 2 post");
+      }).toThrow("Pending board is occupied");
+    });
   });
 
-  it("doesn't let different users post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Ash fell from the sky");
-    simulator.switchUser(randomBytes(32));
-    expect(() =>
-      simulator.post("I am, unfortunately, the hero of ages."),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
-  });
+  describe("Privacy Properties", () => {
+    it("correctly derives and stores agent's public key", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const expectedPubKey = sim.agentPublicKey();
 
-  it("doesn't let users take down someone elses posts", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "Sometimes a hypocrite is nothing more than a man in the process of changing.",
-    );
-    simulator.switchUser(randomBytes(32));
-    expect(() => simulator.takeDown()).toThrow(
-      "failed assert: Attempted to take down post, but not the current owner",
-    );
+      sim.submitPost("Test");
+      const ledger = sim.getLedger();
+
+      expect(ledger.pendingOwner).toEqual(expectedPubKey);
+    });
+
+    it("messages are disclosed as they should be public", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const message = "Public message on board";
+
+      sim.submitPost(message);
+      const ledger = sim.getLedger();
+
+      // Messages should be readable in ledger (disclosed)
+      expect(ledger.pendingMessage.value).toEqual(message);
+    });
+
+    it("admin identity is proven but not revealed in approved posts", () => {
+      const agentSecret = randomBytes(32);
+      const sim = new BBoardSimulator(agentSecret, adminSecret);
+
+      sim.submitPost("Test message");
+      sim.switchToAdmin();
+      sim.approvePost();
+
+      const ledger = sim.getLedger();
+      
+      // Agent's public key is stored
+      expect(ledger.publishedOwner).toEqual(sim.agentPublicKey());
+      
+      // But we don't store admin's identity
+      // Admin proves authority via secret without revealing it
+    });
   });
 });

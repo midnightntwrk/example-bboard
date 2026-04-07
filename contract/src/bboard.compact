@@ -17,44 +17,116 @@ pragma language_version >= 0.20;
 
 import CompactStandardLibrary;
 
-export enum State {
-  VACANT,
-  OCCUPIED
+// Post states in the workflow
+export enum PostState {
+  VACANT,           // No post
+  PENDING,          // Agent posted, awaiting admin approval
+  PUBLISHED         // Admin approved, visible to all
 }
 
-export ledger state: State;
+export ledger pendingState: PostState;
+export ledger pendingMessage: Maybe<Opaque<"string">>;
+export ledger pendingOwner: Bytes<32>;
 
-export ledger message: Maybe<Opaque<"string">>;
+export ledger publishedState: PostState;
+export ledger publishedMessage: Maybe<Opaque<"string">>;
+export ledger publishedOwner: Bytes<32>;
 
 export ledger sequence: Counter;
+export ledger adminPubKey: Bytes<32>;
 
-export ledger owner: Bytes<32>;
+sealed ledger adminSecretKey: Bytes<32>;
 
 constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
+  pendingState = PostState.VACANT;
+  pendingMessage = none<Opaque<"string">>();
+  pendingOwner = pad(32, "");
+  
+  publishedState = PostState.VACANT;
+  publishedMessage = none<Opaque<"string">>();
+  publishedOwner = pad(32, "");
+  
   sequence.increment(1);
+  adminPubKey = disclose(publicKey(pad(32, ""), sequence as Field as Bytes<32>));
+  adminSecretKey = pad(32, "");
 }
 
 witness localSecretKey(): Bytes<32>;
+witness adminSecret(): Bytes<32>;
 
-export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
-  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
+// Derive a public key from a secret key and sequence/salt
+export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
 }
 
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
-  sequence.increment(1);
-  message = none<Opaque<"string">>();
+// Agent submits a message to the pending board
+export circuit submitPost(newMessage: Opaque<"string">): [] {
+  assert(pendingState == PostState.VACANT, "Pending board is occupied");
+  
+  const agentPubKey = publicKey(localSecretKey(), sequence as Field as Bytes<32>);
+  pendingOwner = disclose(agentPubKey);
+  pendingMessage = disclose(some<Opaque<"string">>(newMessage));
+  pendingState = PostState.PENDING;
+}
+
+// Agent withdraws their own pending post
+export circuit withdrawPending(): Opaque<"string"> {
+  assert(pendingState == PostState.PENDING, "No pending post to withdraw");
+  const agentPubKey = publicKey(localSecretKey(), sequence as Field as Bytes<32>);
+  assert(pendingOwner == agentPubKey, "Cannot withdraw another agent's post");
+  
+  const formerMsg = pendingMessage.value;
+  pendingState = PostState.VACANT;
+  pendingMessage = none<Opaque<"string">>();
   return formerMsg;
 }
 
-export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
-  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
+// Admin approves a pending post, moving it to published
+export circuit approvePost(): Opaque<"string"> {
+  assert(pendingState == PostState.PENDING, "No pending post to approve");
+  
+  const adminPk = publicKey(adminSecret(), sequence as Field as Bytes<32>);
+  assert(adminPubKey == adminPk, "Only admin can approve posts");
+  
+  // Move from pending to published
+  publishedMessage = pendingMessage;
+  publishedOwner = pendingOwner;
+  publishedState = PostState.PUBLISHED;
+  
+  const movedMsg = pendingMessage.value;
+  pendingState = PostState.VACANT;
+  pendingMessage = none<Opaque<"string">>();
+  
+  sequence.increment(1);
+  return movedMsg;
+}
+
+// Admin rejects a pending post
+export circuit rejectPost(): Opaque<"string"> {
+  assert(pendingState == PostState.PENDING, "No pending post to reject");
+  
+  const adminPk = publicKey(adminSecret(), sequence as Field as Bytes<32>);
+  assert(adminPubKey == adminPk, "Only admin can reject posts");
+  
+  const formerMsg = pendingMessage.value;
+  pendingState = PostState.VACANT;
+  pendingMessage = none<Opaque<"string">>();
+  sequence.increment(1);
+  
+  return formerMsg;
+}
+
+// Admin can remove a published post (cleanup, moderation)
+export circuit unpublish(): Opaque<"string"> {
+  assert(publishedState == PostState.PUBLISHED, "No published post to remove");
+  
+  const adminPk = publicKey(adminSecret(), sequence as Field as Bytes<32>);
+  assert(adminPubKey == adminPk, "Only admin can unpublish posts");
+  
+  const formerMsg = publishedMessage.value;
+  publishedState = PostState.VACANT;
+  publishedMessage = none<Opaque<"string">>();
+  sequence.increment(1);
+  
+  return formerMsg;
 }

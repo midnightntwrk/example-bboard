@@ -34,15 +34,23 @@ import { type BBoardPrivateState, witnesses } from "../witnesses.js";
 export class BBoardSimulator {
   readonly contract: Contract<BBoardPrivateState>;
   circuitContext: CircuitContext<BBoardPrivateState>;
+  private secretKey: Uint8Array;
+  private adminSecret: Uint8Array;
 
-  constructor(secretKey: Uint8Array) {
+  constructor(secretKey: Uint8Array, adminSecret: Uint8Array) {
+    this.secretKey = secretKey;
+    this.adminSecret = adminSecret;
+    
     this.contract = new Contract<BBoardPrivateState>(witnesses);
     const {
       currentPrivateState,
       currentContractState,
       currentZswapLocalState,
     } = this.contract.initialState(
-      createConstructorContext({ secretKey }, "0".repeat(64)),
+      createConstructorContext(
+        { secretKey, adminSecret },
+        "0".repeat(64),
+      ),
     );
     this.circuitContext = {
       currentPrivateState,
@@ -55,14 +63,34 @@ export class BBoardSimulator {
     };
   }
 
-  /***
-   * Switch to a different secret key for a different user
-   *
-   * TODO: is there a nicer abstraction for testing multi-user dApps?
+  /**
+   * Switch to a different agent (different secret key)
    */
-  public switchUser(secretKey: Uint8Array) {
+  public switchToAgent(secretKey: Uint8Array) {
+    this.secretKey = secretKey;
     this.circuitContext.currentPrivateState = {
       secretKey,
+      adminSecret: this.adminSecret,
+    };
+  }
+
+  /**
+   * Switch to admin context (needed for admin operations)
+   */
+  public switchToAdmin() {
+    this.circuitContext.currentPrivateState = {
+      secretKey: this.secretKey,
+      adminSecret: this.adminSecret,
+    };
+  }
+
+  /**
+   * Switch to agent context (resets to current agent)
+   */
+  public switchToAgentMode() {
+    this.circuitContext.currentPrivateState = {
+      secretKey: this.secretKey,
+      adminSecret: this.adminSecret,
     };
   }
 
@@ -74,23 +102,66 @@ export class BBoardSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  public post(message: string): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.post(
+  /**
+   * Agent submits a post to the pending board
+   */
+  public submitPost(message: string): Ledger {
+    this.circuitContext = this.contract.impureCircuits.submitPost(
       this.circuitContext,
       message,
     ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
-  public takeDown(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.takeDown(
+  /**
+   * Agent withdraws their own pending post
+   */
+  public withdrawPending(): string {
+    const result = this.contract.impureCircuits.withdrawPending(
       this.circuitContext,
-    ).context;
-    return ledger(this.circuitContext.currentQueryContext.state);
+    );
+    this.circuitContext = result.context;
+    // The result is the message that was withdrawn
+    return result.result;
   }
 
-  public publicKey(): Uint8Array {
+  /**
+   * Admin approves a pending post and moves it to published
+   */
+  public approvePost(): string {
+    const result = this.contract.impureCircuits.approvePost(
+      this.circuitContext,
+    );
+    this.circuitContext = result.context;
+    return result.result;
+  }
+
+  /**
+   * Admin rejects a pending post
+   */
+  public rejectPost(): string {
+    const result = this.contract.impureCircuits.rejectPost(
+      this.circuitContext,
+    );
+    this.circuitContext = result.context;
+    return result.result;
+  }
+
+  /**
+   * Admin unpublishes a post (removes it from published board)
+   */
+  public unpublish(): string {
+    const result = this.contract.impureCircuits.unpublish(
+      this.circuitContext,
+    );
+    this.circuitContext = result.context;
+    return result.result;
+  }
+
+  /**
+   * Compute the public key for the current agent
+   */
+  public agentPublicKey(): Uint8Array {
     const sequence = convertFieldToBytes(
       32,
       this.getLedger().sequence,
@@ -98,7 +169,23 @@ export class BBoardSimulator {
     );
     return this.contract.circuits.publicKey(
       this.circuitContext,
-      this.getPrivateState().secretKey,
+      this.secretKey,
+      sequence,
+    ).result;
+  }
+
+  /**
+   * Get the admin's public key
+   */
+  public adminPublicKey(): Uint8Array {
+    const sequence = convertFieldToBytes(
+      32,
+      this.getLedger().sequence,
+      "bboard-simulator.ts",
+    );
+    return this.contract.circuits.publicKey(
+      this.circuitContext,
+      this.adminSecret,
       sequence,
     ).result;
   }

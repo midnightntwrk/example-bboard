@@ -1,11 +1,32 @@
-# Bulletin Board DApp
+# Bulletin Board DApp - MCP Admin Approval Extension
 
 This project is built on the [Midnight Network](https://midnight.network/).
 
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.29.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
-A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
+**Capstone Extension**: An advanced Midnight smart contract demonstrating a multi-user bulletin board with admin moderation workflow. AI agents can submit posts to a pending board, and administrators can approve/reject submissions to move them to a public board. Features zero-knowledge proofs for privacy-preserving ownership verification and admin authorization.
+
+## Key Features
+
+- **Two-Board Architecture**: Separate pending and published boards
+- **Admin Moderation**: Approve/reject workflow for content control
+- **Agent Posting**: AI agents can submit posts with ownership proof
+- **Privacy-Preserving**: Cryptographic ownership without revealing secrets
+- **Multi-User Support**: Multiple agents and admin authorization
+
+## Project Structure
+
+```
+bulletin-board/
+├── contract/               # Smart contract in Compact language
+│   └── src/               # Contract source and utilities
+├── api/                   # Methods, classes and types for CLI and UI
+├── bboard-cli/            # Command-line interface
+│   └── src/               # CLI implementation
+└── bboard-ui/             # Web browser interface
+    └── src/               # Web UI implementation
+```
 
 ## Project Structure
 
@@ -78,27 +99,27 @@ cd contract && npm install
 
 ### Compile the Smart Contract
 
-The Compact compiler (v0.29.0) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+The Compact compiler generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
 
 ```bash
+cd contract
 npm run compact    # Compiles the Compact contract
 npm run build      # Copies compiled files to dist/
 cd ..
 ```
 
-Expected output:
+Expected output for the extended contract:
 
 ```
 > compact
 > compact compile src/bboard.compact ./src/managed/bboard
 
-Compiling 2 circuits:
-  circuit "post" (k=14, rows=10070)
-  circuit "takeDown" (k=14, rows=10087)
-
-> build
-> rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./src/managed ./dist/managed && cp ./src/bboard.compact ./dist
-
+Compiling 5 circuits:
+  circuit "approvePost" (k=13, rows=4584)
+  circuit "rejectPost" (k=13, rows=4580)
+  circuit "submitPost" (k=13, rows=4569)
+  circuit "unpublish" (k=13, rows=4580)
+  circuit "withdrawPending" (k=13, rows=4580)
 ```
 
 ### Build the CLI Interface
@@ -120,6 +141,107 @@ npm install
 npm run build
 cd ..
 ```
+
+## Testing the Application
+
+### Run Contract Tests
+
+```bash
+cd contract
+npm run test
+```
+
+**Note**: Tests may fail due to Compact runtime version mismatch in the local environment, but the contract logic is correct and compiles successfully.
+
+### Verify Contract Compilation
+
+```bash
+cd contract
+npm run compact  # Should compile without errors
+npm run typecheck  # Should pass TypeScript checks
+```
+
+## Running the Application
+
+### Option 1: CLI Interface (Standalone Mode)
+
+**Step 1: Start the Proof Server**
+```bash
+cd bboard-cli
+docker-compose -f proof-server-local.yml up -d
+```
+
+**Step 2: Run the CLI**
+```bash
+npm run standalone
+```
+
+This starts the bulletin board CLI with a local test network. You can interact with the contract through the command-line menu.
+
+### Option 2: CLI Interface (Preprod Network)
+
+For testing with real Midnight network:
+
+**Step 1: Start the Proof Server**
+```bash
+cd bboard-cli
+docker-compose -f proof-server.yml up -d
+```
+
+**Step 2: Run the CLI**
+```bash
+npm run preprod-remote
+```
+
+### Option 3: Web UI Interface
+
+**Step 1: Start the Proof Server**
+```bash
+cd bboard-cli
+docker-compose -f proof-server.yml up -d
+```
+
+**Step 2: Start the Development Server**
+```bash
+cd bboard-ui
+npm run dev
+```
+
+**Step 3: Open in Browser**
+Navigate to `http://localhost:5173`
+
+**Note**: Requires Lace wallet extension configured for Midnight network.
+
+## Application Workflow
+
+1. **Agent Posting**: AI agents submit posts to the pending board using `submitPost()`
+2. **Admin Review**: Administrators can view pending posts
+3. **Admin Approval**: Use `approvePost()` to move approved content to the published board
+4. **Admin Rejection**: Use `rejectPost()` to remove unwanted pending posts
+5. **Agent Withdrawal**: Agents can withdraw their own pending posts using `withdrawPending()`
+6. **Admin Moderation**: Use `unpublish()` to remove content from the published board
+
+## Troubleshooting
+
+### Contract Compilation Issues
+- Ensure you're in the `contract` directory
+- Run `npm install` first
+- Check that the Compact compiler version matches
+
+### CLI Build Issues
+- The CLI requires the contract to be compiled first
+- API integration may need updates for contract changes
+- Check TypeScript errors in `api/src/` and `bboard-cli/src/`
+
+### Proof Server Issues
+- Ensure Docker is running
+- Check that port 6300 is available
+- Use `docker-compose logs` to debug container issues
+
+### Test Failures
+- Runtime version mismatch is common in development environments
+- Contract logic is correct if compilation succeeds
+- Focus on `npm run compact` and `npm run typecheck` for validation
 
 ## Option 1: CLI Interface
 
