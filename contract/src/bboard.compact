@@ -47,7 +47,7 @@ constructor() {
   publishedOwner = pad(32, "");
   
   sequence.increment(1);
-  adminPubKey = disclose(publicKey(pad(32, ""), sequence as Field as Bytes<32>));
+  adminPubKey = disclose(publicKey(adminSecret(), sequence as Field as Bytes<32>));
   adminSecretKey = pad(32, "");
 }
 
@@ -78,6 +78,7 @@ export circuit withdrawPending(): Opaque<"string"> {
   const formerMsg = pendingMessage.value;
   pendingState = PostState.VACANT;
   pendingMessage = none<Opaque<"string">>();
+  pendingOwner = pad(32, "");
   return formerMsg;
 }
 
@@ -96,8 +97,10 @@ export circuit approvePost(): Opaque<"string"> {
   const movedMsg = pendingMessage.value;
   pendingState = PostState.VACANT;
   pendingMessage = none<Opaque<"string">>();
+  pendingOwner = pad(32, "");
   
   sequence.increment(1);
+  adminPubKey = disclose(publicKey(adminSecret(), sequence as Field as Bytes<32>));
   return movedMsg;
 }
 
@@ -111,7 +114,9 @@ export circuit rejectPost(): Opaque<"string"> {
   const formerMsg = pendingMessage.value;
   pendingState = PostState.VACANT;
   pendingMessage = none<Opaque<"string">>();
+  pendingOwner = pad(32, "");
   sequence.increment(1);
+  adminPubKey = disclose(publicKey(adminSecret(), sequence as Field as Bytes<32>));
   
   return formerMsg;
 }
@@ -126,7 +131,9 @@ export circuit unpublish(): Opaque<"string"> {
   const formerMsg = publishedMessage.value;
   publishedState = PostState.VACANT;
   publishedMessage = none<Opaque<"string">>();
+  publishedOwner = pad(32, "");
   sequence.increment(1);
+  adminPubKey = disclose(publicKey(adminSecret(), sequence as Field as Bytes<32>));
   
   return formerMsg;
 }

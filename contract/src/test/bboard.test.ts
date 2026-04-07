@@ -13,6 +13,8 @@ import { PostState } from "../managed/bboard/contract/index.js";
 
 setNetworkId("undeployed" as NetworkId);
 
+const EMPTY_OWNER = new Uint8Array(32);
+
 describe("Extended BBoard Contract - Admin Approval Workflow", () => {
   const adminSecret = randomBytes(32);
 
@@ -77,6 +79,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
       expect(withdrawn).toEqual(message);
       expect(ledger.pendingState).toEqual(PostState.VACANT);
       expect(ledger.pendingMessage.is_some).toEqual(false);
+      expect(ledger.pendingOwner).toEqual(EMPTY_OWNER);
     });
 
     it("prevents withdrawing from an empty pending board", () => {
@@ -117,6 +120,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
 
       expect(approved).toEqual(message);
       expect(ledger.pendingState).toEqual(PostState.VACANT);
+      expect(ledger.pendingOwner).toEqual(EMPTY_OWNER);
       expect(ledger.publishedState).toEqual(PostState.PUBLISHED);
       expect(ledger.publishedMessage.is_some).toEqual(true);
       expect(ledger.publishedMessage.value).toEqual(message);
@@ -172,6 +176,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
       expect(rejected).toEqual(message);
       expect(ledger.pendingState).toEqual(PostState.VACANT);
       expect(ledger.pendingMessage.is_some).toEqual(false);
+      expect(ledger.pendingOwner).toEqual(EMPTY_OWNER);
     });
 
     it("prevents non-admin from rejecting posts", () => {
@@ -212,6 +217,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
       expect(unpublished).toEqual(message);
       expect(ledger.publishedState).toEqual(PostState.VACANT);
       expect(ledger.publishedMessage.is_some).toEqual(false);
+      expect(ledger.publishedOwner).toEqual(EMPTY_OWNER);
     });
 
     it("prevents non-admin from unpublishing", () => {
@@ -263,6 +269,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
       sim.unpublish();
       ledger = sim.getLedger();
       expect(ledger.publishedState).toEqual(PostState.VACANT);
+      expect(ledger.publishedOwner).toEqual(EMPTY_OWNER);
     });
 
     it("handles workflow: submit -> reject -> submit again", () => {
@@ -350,6 +357,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
     it("admin identity is proven but not revealed in approved posts", () => {
       const agentSecret = randomBytes(32);
       const sim = new BBoardSimulator(agentSecret, adminSecret);
+      const agentPubKey = sim.agentPublicKey();
 
       sim.submitPost("Test message");
       sim.switchToAdmin();
@@ -358,7 +366,7 @@ describe("Extended BBoard Contract - Admin Approval Workflow", () => {
       const ledger = sim.getLedger();
 
       // Agent's public key is stored
-      expect(ledger.publishedOwner).toEqual(sim.agentPublicKey());
+      expect(ledger.publishedOwner).toEqual(agentPubKey);
 
       // But we don't store admin's identity
       // Admin proves authority via secret without revealing it

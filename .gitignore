@@ -11,9 +11,19 @@ yarn-error.log*
 
 # Logs
 logs
+logs/
+logs/**
 *.log
 logs/*.log
+mcp-state
+mcp-state/
+mcp-state/**
+mcp-server/logs
+mcp-server/logs/
+mcp-server/logs/**
 midnight-level-db
+bboard-cli/midnight-level-db
+bboard-cli/midnight-level-db/
 coverage
 
 # Test reports
@@ -52,6 +62,7 @@ jspm_packages/
 
 # IDEs and editors
 .idea/
+.codex
 *.suo
 *.ntvs*
 *.njsproj

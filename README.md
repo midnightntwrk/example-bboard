@@ -1,409 +1,273 @@
-# Bulletin Board DApp - MCP Admin Approval Extension
+# Bulletin Board DApp with MCP Server
 
 This project is built on the [Midnight Network](https://midnight.network/).
 
 [![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.29.0-1abc9c.svg)](https://shields.io/)
 [![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
 
-**Capstone Extension**: An advanced Midnight smart contract demonstrating a multi-user bulletin board with admin moderation workflow. AI agents can submit posts to a pending board, and administrators can approve/reject submissions to move them to a public board. Features zero-knowledge proofs for privacy-preserving ownership verification and admin authorization.
+This repository contains a Midnight bulletin board example with:
+
+- a Compact smart contract with pending and published board states
+- a shared TypeScript API
+- a CLI client
+- a browser UI
+- a stdio MCP server for agent integrations
+
+The moderation flow is:
+
+1. An agent submits a post to the pending board.
+2. An admin approves or rejects it.
+3. Approved content moves to the published board.
+4. The admin can later unpublish it.
 
 ## Key Features
 
-- **Two-Board Architecture**: Separate pending and published boards
-- **Admin Moderation**: Approve/reject workflow for content control
-- **Agent Posting**: AI agents can submit posts with ownership proof
-- **Privacy-Preserving**: Cryptographic ownership without revealing secrets
-- **Multi-User Support**: Multiple agents and admin authorization
+- Two-board architecture: separate pending and published slots
+- Admin moderation: approve, reject, and unpublish workflows
+- Agent ownership proofs: agents can withdraw only their own pending posts
+- Privacy-preserving witnesses: contract secrets stay private while public state remains verifiable
+- MCP integration: agents can operate the board through MCP tools over `stdio`
 
 ## Project Structure
 
-```
-bulletin-board/
-├── contract/               # Smart contract in Compact language
-│   └── src/               # Contract source and utilities
-├── api/                   # Methods, classes and types for CLI and UI
-├── bboard-cli/            # Command-line interface
-│   └── src/               # CLI implementation
-└── bboard-ui/             # Web browser interface
-    └── src/               # Web UI implementation
-```
-
-## Project Structure
-
-```
-bulletin-board/
-├── contract/               # Smart contract in Compact language
-│   └── src/               # Contract source and utilities
-├── api/                   # Methods, classes and types for CLI and UI
-├── bboard-cli/            # Command-line interface
-│   └── src/               # CLI implementation
-└── bboard-ui/             # Web browser interface
-    └── src/               # Web UI implementation
+```text
+example-bboard/
+├── contract/      # Compact contract, witnesses, generated artifacts, and tests
+├── api/           # Shared TypeScript API used by clients
+├── bboard-cli/    # Interactive CLI client
+├── bboard-ui/     # Browser UI
+└── mcp-server/    # stdio MCP server for agent integrations
 ```
 
 ## Prerequisites
 
-### 1. Node.js Version Check
+### 1. Node.js
 
-You need Node.js (tested with current LTS):
+Use a current Node.js LTS. The repo was documented against `v24.11.1` or higher.
 
 ```bash
 node --version
 ```
 
-Expected output: `v24.11.1` or higher.
+### 2. Docker
 
-If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
-
-### 2. Docker Installation
-
-The [proof server](https://docs.midnight.network/develop/tutorial/using/proof-server) runs in Docker and is required for both CLI and UI to generate zero-knowledge proofs:
+The proof server runs in Docker and is required for transaction proof generation.
 
 ```bash
 docker --version
 ```
 
-Expected output: `Docker version X.X.X`.
+### 3. Lace Wallet Extension
 
-If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop/). Make sure Docker Desktop is running.
+Only needed for the browser UI. Install Lace and configure Midnight support if you want to use `bboard-ui`.
 
-### 3. Lace Wallet Extension (UI Only)
+## Install and Build
 
-For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
-
-After installing, set up the Midnight wallet:
-
-1. Open the Lace wallet extension and go to **Settings**
-2. Enable the **Beta Program** to unlock Midnight network support
-3. Create a **new wallet** — Midnight will appear as a network option
-4. Go to **Settings > Midnight** and set **Network** to **Preprod**
-5. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
-6. Click **Save configuration**
-7. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
-8. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
-
-## Setup Instructions
-
-### Install Project Dependencies
+From the repo root:
 
 ```bash
-# Install root dependencies
 npm install
 
-# Install API dependencies
-cd api && npm install && cd ..
+cd contract
+npm install
+npm run compact
+npm run build
 
-# Install contract dependencies and compile
-cd contract && npm install
+cd ../api
+npm install
+npm run build
+
+cd ../bboard-cli
+npm install
+npm run build
+
+cd ../bboard-ui
+npm install
+
+cd ../mcp-server
+npm install
+npm run build
 ```
 
-### Compile the Smart Contract
+## Testing
 
-The Compact compiler generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+Contract verification:
 
 ```bash
 cd contract
-npm run compact    # Compiles the Compact contract
-npm run build      # Copies compiled files to dist/
-cd ..
-```
-
-Expected output for the extended contract:
-
-```
-> compact
-> compact compile src/bboard.compact ./src/managed/bboard
-
-Compiling 5 circuits:
-  circuit "approvePost" (k=13, rows=4584)
-  circuit "rejectPost" (k=13, rows=4580)
-  circuit "submitPost" (k=13, rows=4569)
-  circuit "unpublish" (k=13, rows=4580)
-  circuit "withdrawPending" (k=13, rows=4580)
-```
-
-### Build the CLI Interface
-
-```bash
-cd bboard-cli
-npm install
-npm run build
-cd ..
-```
-
-### Build the UI Interface (Optional)
-
-Only needed if you want to use the web interface:
-
-```bash
-cd bboard-ui
-npm install
-npm run build
-cd ..
-```
-
-## Testing the Application
-
-### Run Contract Tests
-
-```bash
-cd contract
+npm run compact
 npm run test
+npm run typecheck
 ```
 
-**Note**: Tests may fail due to Compact runtime version mismatch in the local environment, but the contract logic is correct and compiles successfully.
-
-### Verify Contract Compilation
+MCP server verification:
 
 ```bash
-cd contract
-npm run compact  # Should compile without errors
-npm run typecheck  # Should pass TypeScript checks
+cd mcp-server
+npm run typecheck
+npm run build
 ```
 
-## Running the Application
+## Running the Project
 
-### Option 1: CLI Interface (Standalone Mode)
-
-**Step 1: Start the Proof Server**
+### Option 1: CLI in Preview
 
 ```bash
 cd bboard-cli
-docker-compose -f proof-server-local.yml up -d
+docker compose -f proof-server-local.yml up -d
+npm run preview-remote
 ```
 
-**Step 2: Run the CLI**
-
-```bash
-npm run standalone
-```
-
-This starts the bulletin board CLI with a local test network. You can interact with the contract through the command-line menu.
-
-### Option 2: CLI Interface (Preprod Network)
-
-For testing with real Midnight network:
-
-**Step 1: Start the Proof Server**
+### Option 2: CLI in Preprod
 
 ```bash
 cd bboard-cli
-docker-compose -f proof-server.yml up -d
-```
-
-**Step 2: Run the CLI**
-
-```bash
+docker compose -f proof-server.yml up -d
 npm run preprod-remote
 ```
 
-### Option 3: Web UI Interface
-
-**Step 1: Start the Proof Server**
+### Option 3: CLI in Standalone
 
 ```bash
 cd bboard-cli
-docker-compose -f proof-server.yml up -d
+docker compose -f proof-server-local.yml up -d
+npm run standalone
 ```
 
-**Step 2: Start the Development Server**
+### Option 4: Browser UI
+
+For preview-style local proof server flow:
+
+```bash
+cd bboard-cli
+docker compose -f proof-server-local.yml up -d
+
+cd ../bboard-ui
+npm run build:start:preview
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8080
+```
+
+For `vite` dev mode:
 
 ```bash
 cd bboard-ui
 npm run dev
 ```
 
-**Step 3: Open in Browser**
-Navigate to `http://localhost:5173`
+Then open:
 
-**Note**: Requires Lace wallet extension configured for Midnight network.
+```text
+http://localhost:5173
+```
+
+### Option 5: MCP Server for Agents
+
+The MCP server supports both `stdio` and HTTP modes.
+
+Build and run it with:
+
+```bash
+cd mcp-server
+npm run build
+npm run start
+```
+
+Useful MCP resources:
+
+- `docs://agent-workflow`
+- `docs://credential-model`
+
+Useful MCP prompt:
+
+- `bboard_operator`
+
+HTTP mode is also available:
+
+```bash
+cd mcp-server
+npm run build
+npm run start:http
+```
+
+Default HTTP endpoint:
+
+```text
+http://127.0.0.1:8787/mcp
+```
+
+The proof server is meant to stay behind the MCP server. Agents should call the MCP only, not the proof server directly.
+
+Core MCP tools:
+
+- `bboard_create_session`
+- `bboard_get_session`
+- `bboard_set_admin_secret`
+- `bboard_wait_for_wallet_ready`
+- `bboard_deploy_board`
+- `bboard_join_board`
+- `bboard_get_board_state`
+- `bboard_submit_post`
+- `bboard_withdraw_pending`
+- `bboard_approve_pending`
+- `bboard_reject_pending`
+- `bboard_unpublish_published`
+- `bboard_close_session`
+
+## MCP Security Model
+
+The MCP server makes a strict distinction between wallet credentials and contract credentials.
+
+- `walletSeed`: transaction-signing wallet seed
+- `agentSecretKey`: contract witness used for ownership proofs
+- `adminSecret`: contract witness used for moderation
+
+Important:
+
+- the server never returns `adminSecret`
+- the server never returns `adminPubKey`
+- `adminSecret` is accepted only as write-only input through `bboard_create_session` or `bboard_set_admin_secret`
 
 ## Application Workflow
 
-1. **Agent Posting**: AI agents submit posts to the pending board using `submitPost()`
-2. **Admin Review**: Administrators can view pending posts
-3. **Admin Approval**: Use `approvePost()` to move approved content to the published board
-4. **Admin Rejection**: Use `rejectPost()` to remove unwanted pending posts
-5. **Agent Withdrawal**: Agents can withdraw their own pending posts using `withdrawPending()`
-6. **Admin Moderation**: Use `unpublish()` to remove content from the published board
+1. Agent submits a post with `submitPost()`.
+2. Admin reviews the pending slot.
+3. Admin approves with `approvePost()` or rejects with `rejectPost()`.
+4. Approved content becomes the published post.
+5. The original agent may withdraw only its own pending post.
+6. Admin may later remove the published post with `unpublish()`.
 
 ## Troubleshooting
 
-### Contract Compilation Issues
+### Contract compilation fails
 
-- Ensure you're in the `contract` directory
-- Run `npm install` first
-- Check that the Compact compiler version matches
+- Run `npm install` in `contract/`
+- Run `npm run compact`
+- Verify generated artifacts exist under `contract/src/managed/bboard`
 
-### CLI Build Issues
+### Wallet sync or transaction failures
 
-- The CLI requires the contract to be compiled first
-- API integration may need updates for contract changes
-- Check TypeScript errors in `api/src/` and `bboard-cli/src/`
+- Ensure the proof server is running
+- Ensure the wallet has tNIGHT and DUST where required
+- In preview/preprod, the faucet path may be unreliable and manual funding may be needed
 
-### Proof Server Issues
+### UI cannot transact
 
-- Ensure Docker is running
-- Check that port 6300 is available
-- Use `docker-compose logs` to debug container issues
+- Verify Lace is configured for Midnight
+- Verify the proof server URL points to your local proof server
 
-### Test Failures
+### MCP server starts but the agent cannot use it
 
-- Runtime version mismatch is common in development environments
-- Contract logic is correct if compilation succeeds
-- Focus on `npm run compact` and `npm run typecheck` for validation
+- Confirm the MCP client is configured to launch the server command, not call an HTTP URL
+- Confirm the client can read `stdio`-based MCP servers
+- Confirm the proof server is available before sending board transactions
 
-## Option 1: CLI Interface
+## Additional Docs
 
-### Run the CLI
-
-```bash
-# For preprod network
-npm run preprod-remote
-
-# For preview network
-npm run preview-remote
-```
-
-### Using the CLI
-
-#### Create a Wallet
-
-1. Choose option `1` to build a fresh wallet
-2. The system will generate a wallet address and seed
-3. **Save both the address and seed** - you'll need them later
-
-Expected output:
-
-```
-Your wallet seed is: [64-character hex string]
-Using unshielded address: mn_addr_preprod1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlxpwflz3fxdykaesrw0ln4 waiting for funds...
-```
-
-#### Fund Your Wallet
-
-Before deploying contracts, you need testnet tokens.
-
-1. Copy your wallet address from the output above
-2. Visit the [faucet](https://faucet.preprod.midnight.network/)
-3. Paste your address and request funds
-4. Wait for the CLI to detect the funds (takes 2-3 minutes)
-
-Expected output:
-
-```
-Your NIGHT wallet balance is: 1000000000
-```
-
-#### Deploy Your Contract
-
-1. Choose the contract deployment option
-2. Wait for deployment (takes ~30 seconds)
-3. **Save the contract address** for future use
-
-Expected output:
-
-```
-Deployed bulletin board contract at address: [contract address]
-```
-
-#### Use the Bulletin Board
-
-You can now:
-
-- **Post** a message to the bulletin board
-- **View** the current message
-- **Remove** your message (only if you posted it)
-- **Exit** when done
-
-Each action creates a real transaction on Midnight Testnet using zero-knowledge proofs generated by the proof server.
-
-## Option 2: Web UI Interface
-
-The web interface uses the same proof server and requires additional browser setup.
-
-### Start the Proof Server (if not already running)
-
-If you haven't started the proof server for the CLI, start it now:
-
-```bash
-cd bboard-cli
-docker compose -f proof-server-local.yml up -d
-```
-
-Verify it's running:
-
-```bash
-docker ps
-```
-
-### Start the Web Interface
-
-The UI can run against preprod or preview networks:
-
-```bash
-cd bboard-ui
-
-# For preprod network
-npm run build:start
-
-# For preview network
-npm run build:start:preview
-```
-
-The UI will be available at:
-
-- http://127.0.0.1:8080
-
-### Browser Setup
-
-1. **Open the UI URL** in a browser with Lace wallet extension installed
-2. **Set up Lace wallet** if it's your first time
-3. **Authorize the application** when Lace wallet prompts
-4. Use the bulletin board web interface
-
-## Useful Links
-
-- Get Testnet tNIGHT on [Preprod Faucet](https://faucet.preprod.midnight.network/) or [Preview Faucet](https://faucet.preview.midnight.network/)
-- [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
-- [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
-- Get Lace wallet on the [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia)
-
-## Troubleshooting
-
-| Common Issue                       | Solution                                                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `npm install` fails                | Ensure you're using Node.js LTS version. If you get ERESOLVE errors, try `npm install --legacy-peer-deps` |
-| Contract compilation fails         | Ensure you're in `contract` directory and run `npm run compact`                                           |
-| Network connection timeout         | CLI requires internet connection, restart if connection times out                                         |
-| Token funding takes too long       | Wait 1-2 minutes, funding is automatic in CLI                                                             |
-| "Application not authorized" error | Start proof server: `docker compose -f proof-server-local.yml up -d`                                      |
-| Lace wallet not detected           | Install Lace wallet browser extension and refresh page                                                    |
-| Docker issues                      | Ensure Docker Desktop is running, check `docker --version`                                                |
-| Port 6300 in use                   | Run `docker compose down` then restart services                                                           |
-| Dependencies won't install         | Use Node.js LTS version. For older npm versions, you may need `--legacy-peer-deps`                        |
-| Contract deployment fails          | Verify wallet has sufficient balance and network connection                                               |
-
-## Notes
-
-- CLI and UI can run simultaneously and share the same proof server
-- Proof server (Docker) is required for both CLI and UI to generate zero-knowledge proofs
-- Contract must be compiled before building CLI or UI
-- Fund your wallet using the testnet faucet before deploying contracts
-
-## Repository Notes / Temporary Workarounds
-
-This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
-
-- **Modified testkit sources**
-  Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.
-
-- **Transaction fee configuration**  
-  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from 'midnight-testkit-js' is required on the Undeployed network (lower values fail with `BalanceCheckOverspend` on the `midnight-node` side). On the Preview network, that high overhead prevents transaction creation because it requires a large amount of dust, so it is overridden and set to `1_000n`. The root cause is not yet clear.
-
-- **LevelDB private state provider**  
-  The `levelDbPrivateStateProvider`, shipped with Node.js dependencies, does not work in browser environments. An in-memory private state provider is used instead; the implementation is copied from `midnight-js`.
-
-- **Overall API Usage**
-  Some of the tooling used in `midnight-testkit-js`, `midnight-js` and `midnight-wallet` is not currently well suited for direct application use. Significant wiring and integration logic is required, parts of which are copied into this repository.
-  More flexible and composable APIs would reduce the need for copying and modification, allowing consumers to extend functionality rather than patch or fork existing implementations.
+- MCP package guide: [mcp-server/README.md](/mnt/linuxdata/example-bboard/mcp-server/README.md)
+- Agent example run: [EXAMPLE-AGENT-RUN.md](/mnt/linuxdata/example-bboard/EXAMPLE-AGENT-RUN.md)
+- Capstone writeup: [CAPSTONE_WRITEUP.md](/mnt/linuxdata/example-bboard/CAPSTONE_WRITEUP.md)

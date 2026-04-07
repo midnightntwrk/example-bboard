@@ -1,179 +1,219 @@
-# Capstone Project: MCP Admin-Approved Bulletin Board
+# Capstone Project: Bulletin Board DApp with Agent MCP Integration
 
 ## Overview
 
-This capstone project extends the Midnight bulletin board contract with a sophisticated multi-user, multi-board system designed to support AI agents posting content with human moderation. The system implements a two-tier architecture: a **pending board** where agents can submit posts, and a **published board** where approved content becomes publicly visible.
+This capstone extends the Midnight bulletin board example into a moderated multi-user workflow and adds an MCP server so AI agents can operate the board through a controlled tool interface.
 
-## Design Decisions
+The core on-chain model is intentionally simple:
 
-### Architecture
+- one pending slot for submissions awaiting review
+- one published slot for approved content
 
-The contract maintains two separate boards:
+This keeps the contract small and auditable while still demonstrating:
 
-- **Pending Board**: Single-slot board for agent submissions awaiting approval
-- **Published Board**: Single-slot board for approved, publicly visible content
+- agent ownership proofs
+- admin moderation
+- privacy-preserving witnesses
+- client reuse through a shared TypeScript API
+- agent integration through MCP
 
-This design choice prioritizes simplicity while demonstrating key Midnight concepts. A single-slot pending board prevents spam and simplifies the approval workflow, while the published board ensures only one approved post is visible at a time.
+## Architecture
 
-### Privacy Properties
+The repository is organized into five layers:
 
-**Agent Privacy**: Agents prove ownership of their posts through cryptographic commitment (public key derivation from secret) without revealing their secret key. The `publicKey()` circuit derives a deterministic public key from the agent's secret and sequence number, allowing ownership verification while maintaining privacy.
+1. `contract/`
+   Compact contract, witnesses, generated artifacts, and tests.
+2. `api/`
+   Shared TypeScript interface for deploying, joining, reading, and mutating the board.
+3. `bboard-cli/`
+   Interactive terminal client for human operators.
+4. `bboard-ui/`
+   Browser UI using Lace and Midnight client integrations.
+5. `mcp-server/`
+   `stdio` MCP server exposing board operations to agents as tools.
 
-**Admin Privacy**: The admin's identity is never stored on-chain. Admin authority is proven through possession of the admin secret key, which is used to derive the admin's public key for authorization checks. This ensures admin actions are publicly verifiable but the admin's identity remains private.
+This structure lets multiple clients reuse the same business logic instead of each reimplementing contract calls independently.
 
-**Message Disclosure**: Messages are intentionally disclosed (public) as they are meant to be read by others. The `disclose()` calls ensure messages appear in the public ledger state.
+## Contract Model
 
-### Security Model
+The contract maintains two board regions:
 
-**Authorization Checks**:
+- `pending*` fields for submissions waiting for moderation
+- `published*` fields for the currently visible approved content
 
-- Agents can only withdraw their own pending posts
-- Only the admin can approve, reject, or unpublish posts
-- Admin identity is verified through cryptographic proof, not stored state
+Important ledger fields:
 
-**State Transitions**:
+- `pendingState`
+- `pendingMessage`
+- `pendingOwner`
+- `publishedState`
+- `publishedMessage`
+- `publishedOwner`
+- `sequence`
+- `adminPubKey`
 
-- VACANT → PENDING (agent submits)
-- PENDING → VACANT (agent withdraws or admin rejects)
-- PENDING → PUBLISHED (admin approves)
-- PUBLISHED → VACANT (admin unpublishes)
+Important witness/private fields:
 
-## Compact Patterns Applied
+- `localSecretKey()`
+- `adminSecret()`
 
-### Witnesses
+The state transitions are:
 
-- `localSecretKey()`: Provides agent's secret for ownership proofs
-- `adminSecret()`: Provides admin's secret for authorization
+- `VACANT -> PENDING` on agent submission
+- `PENDING -> VACANT` on withdrawal or rejection
+- `PENDING -> PUBLISHED` on approval
+- `PUBLISHED -> VACANT` on unpublish
 
-### Ledger Fields
+When a slot becomes vacant, both the message and owner are cleared.
 
-- `export ledger`: Public state visible to all (pending/published boards, admin public key)
-- `sealed ledger`: Private state accessible only within circuits (admin secret key)
+## Authorization and Privacy
 
-### Circuit Design
+### Agent authorization
 
-- **Conditional Logic**: Circuits use assertions to enforce state transitions and authorization
-- **Public Key Derivation**: `publicKey()` circuit creates deterministic commitments
-- **Sequence Counter**: Prevents replay attacks and ensures unique derivations
-- **Disclose Calls**: Strategic disclosure of public information (messages, public keys)
+Agents prove ownership by deriving a public owner key from their private agent secret and the sequence counter. This allows the contract to verify who owns a pending post without revealing the agent secret itself.
 
-### State Management
+### Admin authorization
 
-- **Enum States**: Clear state machine with VACANT/PENDING/PUBLISHED transitions
-- **Maybe Types**: Proper handling of optional message fields
-- **Counter**: Sequence field for unique key derivations
+Admin operations are authorized by proving possession of the admin secret, which derives the on-chain `adminPubKey`.
 
-## Implementation Details
+At the contract level, `adminPubKey` is part of public ledger state because the authorization check needs a public comparison target.
 
-### Circuits
+### MCP privacy boundary
 
-1. **`submitPost(message)`**: Agent posts to pending board
-   - Requires pending board to be VACANT
-   - Derives and discloses agent's public key
-   - Discloses message content
+The MCP server applies a stricter application-layer privacy policy than the raw contract API:
 
-2. **`withdrawPending()`**: Agent removes their own pending post
-   - Verifies ownership via public key match
-   - Returns the withdrawn message
+- it never returns `adminSecret`
+- it never returns `adminPubKey`
+- `adminSecret` is treated as write-only input
 
-3. **`approvePost()`**: Admin moves pending post to published
-   - Verifies admin authority
-   - Transfers message and ownership to published board
-   - Increments sequence counter
+This means the contract may still maintain `adminPubKey` on-chain, but the agent-facing MCP layer refuses to expose it.
 
-4. **`rejectPost()`**: Admin removes pending post
-   - Verifies admin authority
-   - Clears pending board without publishing
+## API Layer
 
-5. **`unpublish()`**: Admin removes published post
-   - Verifies admin authority
-   - Clears published board
+The shared `api/` package wraps contract deployment, joining, state observation, and transaction submission.
 
-### TypeScript Integration
+Main operations exposed by `BBoardAPI`:
 
-**Witnesses**: Extended to support both agent and admin secrets in private state.
+- `deploy`
+- `join`
+- `post`
+- `takeDown`
+- `approvePending`
+- `rejectPending`
+- `unpublishPublished`
 
-**Simulator**: Updated with methods for all new circuits and user switching capabilities.
+It also derives useful client-facing state such as:
 
-**Tests**: Comprehensive test suite covering:
+- current visible state
+- ownership booleans
+- current message selection
 
-- Happy path workflows (submit → approve → unpublish)
-- Security properties (unauthorized actions fail)
-- Edge cases (multiple agents, state transitions)
-- Privacy verification (secrets not revealed, proper disclosures)
+This keeps the CLI, UI, and MCP layers thin and consistent.
 
-## Privacy Analysis
+## MCP Server Design
 
-### What's Private
+The MCP server is implemented as a `stdio` server so it can be launched directly by MCP-capable agent runtimes.
 
-- Agent secret keys (never disclosed)
-- Admin secret key (sealed ledger field)
-- Admin identity (only proven through cryptographic verification)
+It exposes:
 
-### What's Public
+- tools
+- resources
+- prompts
 
-- Agent public keys (cryptographic commitments to ownership)
-- Message content (intentionally public)
-- Board states (workflow visibility)
-- Sequence counters (prevents replay attacks)
+### Tools
 
-### Privacy Trade-offs
+- `bboard_create_session`
+- `bboard_get_session`
+- `bboard_set_admin_secret`
+- `bboard_wait_for_wallet_ready`
+- `bboard_deploy_board`
+- `bboard_join_board`
+- `bboard_get_board_state`
+- `bboard_submit_post`
+- `bboard_withdraw_pending`
+- `bboard_approve_pending`
+- `bboard_reject_pending`
+- `bboard_unpublish_published`
+- `bboard_close_session`
 
-- **Single-slot Design**: Limits concurrent posts but simplifies privacy analysis
-- **Public Key Disclosure**: Agents' public keys are visible, creating a public record of participation
-- **Admin Authority**: Admin actions are publicly verifiable but admin identity is private
+### Resources
 
-## Limitations and Future Extensions
+- `docs://agent-workflow`
+- `docs://credential-model`
 
-### Current Limitations
+### Prompt
 
-- Single pending slot prevents multiple simultaneous submissions
-- No post metadata (timestamps, categories)
-- Admin is a single entity (no multi-admin support)
-- No voting or community moderation features
+- `bboard_operator`
 
-### Potential Extensions
+## MCP Credential Model
 
-- **Multi-slot Pending Board**: Vector-based storage for multiple pending posts
-- **Post Metadata**: Add timestamps, categories, or priority levels
-- **Multi-admin**: Support multiple admin keys with threshold authorization
-- **Community Features**: Upvote/downvote systems with ZK proofs
-- **Expiration**: Time-based automatic cleanup of stale posts
+The MCP layer separates three concepts:
+
+### 1. Wallet seed
+
+`walletSeed` pays fees and signs transactions on Midnight.
+
+### 2. Agent secret
+
+`agentSecretKey` is contract private state used to prove ownership of pending posts.
+
+### 3. Admin secret
+
+`adminSecret` is contract private state used to authorize moderation.
+
+The server allows the admin secret to be provided, but it is never returned in responses.
+
+This separation makes the MCP implementation a reusable template for similar Midnight DApps where:
+
+- transaction identity
+- contract witness identity
+- privileged moderation authority
+
+may need to be managed independently.
+
+## Design Trade-offs
+
+### Why single-slot boards?
+
+The design favors clarity over throughput:
+
+- less complex state logic
+- simpler moderation flow
+- easier privacy review
+- easier end-to-end testing
+
+### Why keep wallet seed separate from contract secrets?
+
+Because the wallet pays for transactions while contract witnesses prove role-specific authority. Keeping them separate makes agent orchestration more explicit and safer.
+
+### Why hide admin data in MCP if the contract has `adminPubKey`?
+
+Because the MCP server is an application boundary, not a mirror of every raw contract field. Its job is to expose only what agents need to act safely.
 
 ## Testing Strategy
 
-The test suite exercises all circuits with both positive and negative test cases:
+The repo validates behavior at multiple levels:
 
-**Positive Tests**:
+- contract tests for circuit logic and state transitions
+- typechecks for API, CLI, and MCP layers
+- runtime startup checks for the MCP server
 
-- Complete workflow: submit → approve → unpublish
-- Agent withdrawal of pending posts
-- Admin rejection of posts
+Covered contract behaviors include:
 
-**Negative Tests**:
+- submit
+- withdraw
+- approve
+- reject
+- unpublish
+- owner clearing when slots become vacant
 
-- Unauthorized actions (wrong agent/admin attempting operations)
-- Invalid state transitions (posting to occupied board)
-- Edge cases (empty board operations)
+## Outcome
 
-**Privacy Tests**:
+The project now demonstrates a full stack Midnight workflow:
 
-- Verify secrets are not exposed in ledger state
-- Confirm proper disclosure of public information
-- Validate cryptographic ownership proofs
+- on-chain moderation logic
+- shared client API
+- human-facing CLI and UI
+- agent-facing MCP integration
 
-## Conclusion
-
-This implementation successfully demonstrates advanced Midnight DApp patterns while maintaining strong privacy properties. The two-board architecture with admin moderation provides a practical foundation for AI agent content posting with human oversight.
-
-The design balances functionality, privacy, and simplicity, making it suitable for real-world deployment while serving as an excellent demonstration of Compact contract capabilities. The cryptographic approach ensures agents can prove ownership and admins can prove authority without compromising privacy, while the disclosed message content enables the intended public communication functionality.
-
-This capstone work showcases proficiency in:
-
-- Compact contract design and compilation
-- Privacy-preserving state management
-- Multi-user authorization patterns
-- Comprehensive testing strategies
-- TypeScript integration with Midnight SDK
-
-Word count: 842
+It also demonstrates an important practical pattern for agent systems: the MCP layer can provide strong operational tools while still enforcing stricter secrecy rules than the raw underlying protocol surface.

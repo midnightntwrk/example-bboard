@@ -30,12 +30,12 @@ import {
   type DeployedBBoardContract,
   bboardPrivateStateKey,
 } from './common-types.js';
-import { CompiledBBoardContractContract } from '../../contract/src/index';
+import { CompiledBBoardContractContract } from '../../contract/src/index.js';
 import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
-import { BBoardPrivateState, createBBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
+import { type BBoardPrivateState, createBBoardPrivateState, PostState } from '../../contract/src/index.js';
 
 /** @internal */
 
@@ -48,6 +48,9 @@ export interface DeployedBBoardAPI {
 
   post: (message: string) => Promise<void>;
   takeDown: () => Promise<void>;
+  approvePending: () => Promise<void>;
+  rejectPending: () => Promise<void>;
+  unpublishPublished: () => Promise<void>;
 }
 
 /**
@@ -85,8 +88,10 @@ export class BBoardAPI implements DeployedBBoardAPI {
               ledgerStateChanged: {
                 ledgerState: {
                   ...ledgerState,
-                  state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
-                  owner: toHex(ledgerState.owner),
+                  pendingState: PostState[ledgerState.pendingState],
+                  pendingOwner: toHex(ledgerState.pendingOwner),
+                  publishedState: PostState[ledgerState.publishedState],
+                  publishedOwner: toHex(ledgerState.publishedOwner),
                 },
               },
             }),
@@ -104,12 +109,48 @@ export class BBoardAPI implements DeployedBBoardAPI {
           privateState.secretKey,
           convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
         );
+        const hashedAdminSecret = BBoard.pureCircuits.publicKey(
+          privateState.adminSecret,
+          convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
+        );
+        const pendingIsOwner = toHex(ledgerState.pendingOwner) === toHex(hashedSecretKey);
+        const publishedIsOwner = toHex(ledgerState.publishedOwner) === toHex(hashedSecretKey);
+        const isAdmin = toHex(ledgerState.adminPubKey) === toHex(hashedAdminSecret);
+        const state =
+          ledgerState.pendingState === PostState.PENDING
+            ? PostState.PENDING
+            : ledgerState.publishedState === PostState.PUBLISHED
+              ? PostState.PUBLISHED
+              : PostState.VACANT;
+        const message =
+          ledgerState.pendingState === PostState.PENDING
+            ? ledgerState.pendingMessage.is_some
+              ? ledgerState.pendingMessage.value
+              : undefined
+            : ledgerState.publishedState === PostState.PUBLISHED
+              ? ledgerState.publishedMessage.is_some
+                ? ledgerState.publishedMessage.value
+                : undefined
+              : undefined;
+        const isOwner =
+          ledgerState.pendingState === PostState.PENDING
+            ? pendingIsOwner
+            : ledgerState.publishedState === PostState.PUBLISHED
+              ? publishedIsOwner
+              : false;
 
         return {
-          state: ledgerState.state,
-          message: ledgerState.message.value,
+          state,
+          message,
           sequence: ledgerState.sequence,
-          isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
+          pendingState: ledgerState.pendingState,
+          pendingMessage: ledgerState.pendingMessage.is_some ? ledgerState.pendingMessage.value : undefined,
+          pendingIsOwner,
+          publishedState: ledgerState.publishedState,
+          publishedMessage: ledgerState.publishedMessage.is_some ? ledgerState.publishedMessage.value : undefined,
+          publishedIsOwner,
+          isAdmin,
+          isOwner,
         };
       },
     );
@@ -137,11 +178,11 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async post(message: string): Promise<void> {
     this.logger?.info(`postingMessage: ${message}`);
 
-    const txData = await this.deployedContract.callTx.post(message);
+    const txData = await this.deployedContract.callTx.submitPost(message);
 
     this.logger?.trace({
       transactionAdded: {
-        circuit: 'post',
+        circuit: 'submitPost',
         txHash: txData.public.txHash,
         blockHeight: txData.public.blockHeight,
       },
@@ -159,11 +200,53 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async takeDown(): Promise<void> {
     this.logger?.info('takingDownMessage');
 
-    const txData = await this.deployedContract.callTx.takeDown();
+    const txData = await this.deployedContract.callTx.withdrawPending();
 
     this.logger?.trace({
       transactionAdded: {
-        circuit: 'takeDown',
+        circuit: 'withdrawPending',
+        txHash: txData.public.txHash,
+        blockHeight: txData.public.blockHeight,
+      },
+    });
+  }
+
+  async approvePending(): Promise<void> {
+    this.logger?.info('approvingPendingMessage');
+
+    const txData = await this.deployedContract.callTx.approvePost();
+
+    this.logger?.trace({
+      transactionAdded: {
+        circuit: 'approvePost',
+        txHash: txData.public.txHash,
+        blockHeight: txData.public.blockHeight,
+      },
+    });
+  }
+
+  async rejectPending(): Promise<void> {
+    this.logger?.info('rejectingPendingMessage');
+
+    const txData = await this.deployedContract.callTx.rejectPost();
+
+    this.logger?.trace({
+      transactionAdded: {
+        circuit: 'rejectPost',
+        txHash: txData.public.txHash,
+        blockHeight: txData.public.blockHeight,
+      },
+    });
+  }
+
+  async unpublishPublished(): Promise<void> {
+    this.logger?.info('unpublishingMessage');
+
+    const txData = await this.deployedContract.callTx.unpublish();
+
+    this.logger?.trace({
+      transactionAdded: {
+        circuit: 'unpublish',
         txHash: txData.public.txHash,
         blockHeight: txData.public.blockHeight,
       },
@@ -230,7 +313,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
 
   private static async getPrivateState(providers: BBoardProviders): Promise<BBoardPrivateState> {
     const existingPrivateState = await providers.privateStateProvider.get(bboardPrivateStateKey);
-    return existingPrivateState ?? createBBoardPrivateState(utils.randomBytes(32));
+    return existingPrivateState ?? createBBoardPrivateState(utils.randomBytes(32), utils.randomBytes(32));
   }
 }
 
