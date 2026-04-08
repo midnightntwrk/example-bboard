@@ -29,7 +29,7 @@
     "@midnight-ntwrk/wallet-sdk-address-format": "3.0.0",
     "@midnight-ntwrk/wallet-sdk-facade": "1.0.0",
     "@midnight-ntwrk/wallet-sdk-hd": "3.0.0",
-    "axios": "^1.13.6",
+    "axios": "^1.14.0",
     "buffer": "^6.0.3",
     "fp-ts": "^2.16.11",
     "pino": "^10.3.1",
