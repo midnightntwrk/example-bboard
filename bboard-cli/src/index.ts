@@ -76,18 +76,19 @@ const deployOrJoin = async (
   providers: NFTTradeProviders,
   rli: Interface,
   logger: Logger,
+  secretKey: Uint8Array,
 ): Promise<NFTTradeAPI | null> => {
   while (true) {
     const choice = await rli.question(DEPLOY_OR_JOIN_QUESTION);
     switch (choice) {
       case '1': {
-        const api = await NFTTradeAPI.deploy(providers, logger);
+        const api = await NFTTradeAPI.deploy(providers, secretKey, logger);
         logger.info(`Deployed contract at address: ${api.deployedContractAddress}`);
         return api;
       }
       case '2': {
         const addr = await rli.question('Contract address (hex): ');
-        const api = await NFTTradeAPI.join(providers, addr, logger);
+        const api = await NFTTradeAPI.join(providers, addr, secretKey, logger);
         logger.info(`Joined contract at address: ${api.deployedContractAddress}`);
         return api;
       }
@@ -131,8 +132,8 @@ NFT Trade Board — choose an action:
   8. Exit
 Which would you like to do? `;
 
-const mainLoop = async (providers: NFTTradeProviders, rli: Interface, logger: Logger): Promise<void> => {
-  const api = await deployOrJoin(providers, rli, logger);
+const mainLoop = async (providers: NFTTradeProviders, rli: Interface, logger: Logger, secretKey: Uint8Array): Promise<void> => {
+  const api = await deployOrJoin(providers, rli, logger, secretKey);
   if (api === null) return;
 
   let currentState: NFTTradeDerivedState | undefined;
@@ -279,10 +280,11 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
     }
 
     const zkConfigProvider = new NodeZkConfigProvider<NFTTradeCircuitKeys>(config.zkConfigPath);
+    const walletId = seed.slice(0, 16); // first 8 bytes of seed as unique suffix
     const providers: NFTTradeProviders = {
       privateStateProvider: levelPrivateStateProvider<PrivateStateId, NFTTradePrivateState>({
-        privateStateStoreName: config.privateStateStoreName,
-        signingKeyStoreName: `${config.privateStateStoreName}-signing-keys`,
+        privateStateStoreName: `${config.privateStateStoreName}-${walletId}`,
+        signingKeyStoreName: `${config.privateStateStoreName}-${walletId}-signing-keys`,
         privateStoragePasswordProvider: () => 'key-just-for-testing-here!',
       }),
       publicDataProvider: indexerPublicDataProvider(envConfiguration.indexer, envConfiguration.indexerWS),
@@ -292,7 +294,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
       midnightProvider: walletProvider,
     };
 
-    await mainLoop(providers, rli, logger);
+    await mainLoop(providers, rli, logger, Buffer.from(seed, 'hex'));
   } catch (e) {
     logError(logger, e);
     logger.info('Exiting...');

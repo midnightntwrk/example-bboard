@@ -93,7 +93,7 @@ The bboard contract rotates the public key on each `takeDown` using a `sequence`
 ## How to Build and Test
 
 ```bash
-# Prerequisites: Compact compiler (v0.29.0+), Node.js 22+
+# Prerequisites: Compact compiler (v0.29.0+), Node.js 20+
 
 # 1. Install dependencies
 npm install

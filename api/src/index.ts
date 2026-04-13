@@ -72,26 +72,17 @@ export class NFTTradeAPI implements DeployedNFTTradeAPI {
 
         // Collect all NFT IDs owned by this user
         const myNFTs: bigint[] = [];
-        // Map iteration is not directly available; the contract exposes member/lookup
-        // In the simulator context the ledger shape has a toJSON-able entries structure.
-        // For the live API we rely on the indexer providing updated ledger state,
-        // and iterate offer ledger maps via the generated ledger helpers.
-        // NOTE: Map iteration depends on the generated contract runtime; we expose
-        //       what we can access through the typed ledger object.
-
         // Build offer views from the offer ledger maps
         const offers: OfferView[] = [];
 
-        // The generated Ledger type exposes Map fields. We iterate known offer IDs
-        // by walking offer_offerer_pk entries (available in the compiled output).
-        // In the Midnight SDK the Map type supports .entries() on the runtime object.
-        for (const [offerIdBytes, offererPk] of Object.entries(ledgerState.offer_offerer_pk as unknown as Record<string, Uint8Array>)) {
-          const offerIdHex = offerIdBytes;
+        // The generated Ledger Map type supports [Symbol.iterator] — use for...of directly.
+        for (const [offerIdBytes, offererPk] of ledgerState.offer_offerer_pk) {
+          const offerIdHex = toHex(offerIdBytes);
           const offererPkHex = toHex(offererPk);
-          const offereeCommit = (ledgerState.offer_offeree_commit as unknown as Record<string, Uint8Array>)[offerIdHex];
-          const nftOffered = (ledgerState.offer_nft_offered as unknown as Record<string, bigint>)[offerIdHex];
-          const nftRequested = (ledgerState.offer_nft_requested as unknown as Record<string, bigint>)[offerIdHex];
-          const status = (ledgerState.offer_status as unknown as Record<string, NFTTrade.OfferStatus>)[offerIdHex];
+          const offereeCommit = ledgerState.offer_offeree_commit.lookup(offerIdBytes);
+          const nftOffered = ledgerState.offer_nft_offered.lookup(offerIdBytes);
+          const nftRequested = ledgerState.offer_nft_requested.lookup(offerIdBytes);
+          const status = ledgerState.offer_status.lookup(offerIdBytes);
 
           offers.push({
             offerId: offerIdHex,
@@ -105,9 +96,9 @@ export class NFTTradeAPI implements DeployedNFTTradeAPI {
         }
 
         // Collect NFTs owned by local user from nft_owners map
-        for (const [nftIdStr, ownerPk] of Object.entries(ledgerState.nft_owners as unknown as Record<string, Uint8Array>)) {
+        for (const [nftId, ownerPk] of ledgerState.nft_owners) {
           if (toHex(ownerPk) === myPkHex) {
-            myNFTs.push(BigInt(nftIdStr));
+            myNFTs.push(nftId);
           }
         }
 
@@ -143,7 +134,7 @@ export class NFTTradeAPI implements DeployedNFTTradeAPI {
     this.logger?.info({ createOffer: { nftOffered: nftOffered.toString(), nftRequested: nftRequested.toString() } });
     const txData = await this.deployedContract.callTx.createOffer(nftOffered, nftRequested, offereeCommitment);
     this.logger?.trace({ transactionAdded: { circuit: 'createOffer', txHash: txData.public.txHash } });
-    return toHex(txData.public.result as Uint8Array);
+    return toHex(txData.private.result as Uint8Array);
   }
 
   /** Accept a trade offer (executes the NFT swap). */
@@ -175,12 +166,12 @@ export class NFTTradeAPI implements DeployedNFTTradeAPI {
     return NFTTrade.pureCircuits.offereeCommitment(offereePk, salt);
   }
 
-  static async deploy(providers: NFTTradeProviders, logger?: Logger): Promise<NFTTradeAPI> {
+  static async deploy(providers: NFTTradeProviders, secretKey: Uint8Array, logger?: Logger): Promise<NFTTradeAPI> {
     logger?.info('deployContract');
     const deployedContract = await deployContract(providers, {
       compiledContract: CompiledNFTTradeContractContract,
       privateStateId: nftTradePrivateStateKey,
-      initialPrivateState: await NFTTradeAPI.getPrivateState(providers),
+      initialPrivateState: await NFTTradeAPI.getPrivateState(providers, secretKey),
     });
     logger?.trace({ contractDeployed: { finalizedDeployTxData: deployedContract.deployTxData.public } });
     return new NFTTradeAPI(deployedContract, providers, logger);
@@ -189,6 +180,7 @@ export class NFTTradeAPI implements DeployedNFTTradeAPI {
   static async join(
     providers: NFTTradeProviders,
     contractAddress: ContractAddress,
+    secretKey: Uint8Array,
     logger?: Logger,
   ): Promise<NFTTradeAPI> {
     logger?.info({ joinContract: { contractAddress } });
@@ -196,15 +188,15 @@ export class NFTTradeAPI implements DeployedNFTTradeAPI {
       contractAddress,
       compiledContract: CompiledNFTTradeContractContract,
       privateStateId: nftTradePrivateStateKey,
-      initialPrivateState: await NFTTradeAPI.getPrivateState(providers),
+      initialPrivateState: await NFTTradeAPI.getPrivateState(providers, secretKey),
     });
     logger?.trace({ contractJoined: { finalizedDeployTxData: deployedContract.deployTxData.public } });
     return new NFTTradeAPI(deployedContract, providers, logger);
   }
 
-  private static async getPrivateState(providers: NFTTradeProviders): Promise<NFTTradePrivateState> {
+  private static async getPrivateState(providers: NFTTradeProviders, secretKey: Uint8Array): Promise<NFTTradePrivateState> {
     const existing = await providers.privateStateProvider.get(nftTradePrivateStateKey);
-    return existing ?? createNFTTradePrivateState(utils.randomBytes(32));
+    return existing ?? createNFTTradePrivateState(secretKey);
   }
 }
 

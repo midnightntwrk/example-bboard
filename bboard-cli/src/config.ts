@@ -50,9 +50,9 @@ export class PreviewRemoteConfig implements Config {
     setNetworkId('preview');
     return new PreviewTestEnvironment(logger);
   }
-  privateStateStoreName = 'bboard-private-state';
+  privateStateStoreName = 'nft-trade-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'preview-remote', `${new Date().toISOString()}.log`);
-  zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
+  zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'nft-trade');
   requestFaucetTokens = false; // Faucet not available via API, gives 500 error
   generateDust = true;
 }
