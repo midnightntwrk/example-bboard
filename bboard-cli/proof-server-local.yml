@@ -2,6 +2,6 @@ services:
   proof-server:
     image: midnightntwrk/proof-server:8.0.2
     command: ['midnight-proof-server', '-v']
-    container_name: "proof-server_$TESTCONTAINERS_UID"
+    container_name: "proof-server-local"
     ports:
-      - '0:6300'
+      - '6300:6300'
