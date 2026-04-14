@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import { CompiledContract } from "@midnight-ntwrk/compact-js";
+
 export * from "./managed/bboard/contract/index.js";
 export * from "./witnesses";
 
@@ -22,10 +23,7 @@ import * as Witnesses from "./witnesses";
 
 export const CompiledBBoardContractContract = CompiledContract.make<
   CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>
->(
-  "Counter",
-  CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>,
-).pipe(
+>("BBoard", CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>).pipe(
   CompiledContract.withWitnesses(Witnesses.witnesses),
-  CompiledContract.withCompiledFileAssets("./compiled/counter"),
+  CompiledContract.withCompiledFileAssets("./managed/bboard"),
 );
