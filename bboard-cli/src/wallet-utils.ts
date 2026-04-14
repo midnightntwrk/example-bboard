@@ -56,7 +56,7 @@ const isFacadeStateSynced = (state: FacadeState): boolean =>
   isProgressStrictlyComplete(state.dust.state.progress) &&
   isProgressStrictlyComplete(state.unshielded.progress);
 
-export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000, timeout = 180_000) => {
+export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000) => {
   logger.info('Syncing wallet...');
 
   return Rx.firstValueFrom(
@@ -91,10 +91,7 @@ export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 
           `Wallet balances after sync - Shielded: ${JSON.stringify(shieldedBalances)}, Unshielded: ${JSON.stringify(unshieldedBalances)}, Dust: ${dustBalances}`,
         );
       }),
-      Rx.timeout({
-        each: timeout,
-        with: () => Rx.throwError(() => new Error(`Wallet sync timeout after ${timeout}ms`)),
-      }),
+
     ),
   );
 };
@@ -106,7 +103,6 @@ export const waitForUnshieldedFunds = async (
   tokenType: UnshieldedTokenType,
   fundFromFaucet = false,
   throttleTime = 2_000,
-  timeout = 180_000,
 ): Promise<UnshieldedWalletState> => {
   const initialState = await getInitialUnshieldedState(logger, wallet.unshielded);
   const unshieldedAddress = UnshieldedAddress.codec.encode(getNetworkId(), initialState.address);
@@ -142,10 +138,7 @@ export const waitForUnshieldedFunds = async (
           );
         }),
         Rx.map((state: FacadeState) => state.unshielded),
-        Rx.timeout({
-          each: timeout,
-          with: () => Rx.throwError(() => new Error(`Wallet funding timeout after ${timeout}ms`)),
-        }),
+
       ),
     );
   }
