@@ -1,6 +1,6 @@
 /*
  * This file is part of midnight-js.
- * Copyright (C) 2025 Midnight Foundation
+ * Copyright (C) Midnight Foundation
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the "License");
  * You may not use this file except in compliance with the License.
@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-import { UnshieldedTokenType } from '@midnight-ntwrk/ledger-v7';
+import { UnshieldedTokenType } from '@midnight-ntwrk/ledger-v8';
 import { type FacadeState, type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
-import { ShieldedWallet } from '@midnight-ntwrk/wallet-sdk-shielded';
-import { type UnshieldedWallet, UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
+import { type ShieldedWalletAPI, type ShieldedWalletState } from '@midnight-ntwrk/wallet-sdk-shielded';
+import { type UnshieldedWalletAPI, type UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
 import * as Rx from 'rxjs';
 
 import { FaucetClient, type EnvironmentConfiguration } from '@midnight-ntwrk/testkit-js';
@@ -24,20 +24,18 @@ import { Logger } from 'pino';
 import { UnshieldedAddress } from '@midnight-ntwrk/wallet-sdk-address-format';
 import { getNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
-export const getInitialState = async (wallet: ShieldedWallet | UnshieldedWallet) => {
-  if (wallet instanceof ShieldedWallet) {
-    return Rx.firstValueFrom((wallet as ShieldedWallet).state);
-  } else {
-    return Rx.firstValueFrom((wallet as UnshieldedWallet).state);
-  }
-};
-
-export const getInitialShieldedState = async (logger: Logger, wallet: ShieldedWallet) => {
+export const getInitialShieldedState = async (
+  logger: Logger,
+  wallet: ShieldedWalletAPI,
+): Promise<ShieldedWalletState> => {
   logger.info('Getting initial state of wallet...');
   return Rx.firstValueFrom(wallet.state);
 };
 
-export const getInitialUnshieldedState = async (logger: Logger, wallet: UnshieldedWallet) => {
+export const getInitialUnshieldedState = async (
+  logger: Logger,
+  wallet: UnshieldedWalletAPI,
+): Promise<UnshieldedWalletState> => {
   logger.info('Getting initial state of wallet...');
   return Rx.firstValueFrom(wallet.state);
 };
@@ -53,7 +51,12 @@ const isProgressStrictlyComplete = (progress: unknown): boolean => {
   return (candidate.isStrictlyComplete as () => boolean)();
 };
 
-export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000, timeout = 180_000) => {
+const isFacadeStateSynced = (state: FacadeState): boolean =>
+  isProgressStrictlyComplete(state.shielded.state.progress) &&
+  isProgressStrictlyComplete(state.dust.state.progress) &&
+  isProgressStrictlyComplete(state.unshielded.progress);
+
+export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 2_000) => {
   logger.info('Syncing wallet...');
 
   return Rx.firstValueFrom(
@@ -77,25 +80,16 @@ export const syncWallet = (logger: Logger, wallet: WalletFacade, throttleTime = 
           `Wallet synced state emission (synced=${isSynced}): { shielded=${shieldedSynced}, unshielded=${unshieldedSynced}, dust=${dustSynced} }`,
         );
       }),
-      Rx.filter(
-        (state: FacadeState) =>
-          isProgressStrictlyComplete(state.shielded.state.progress) &&
-          isProgressStrictlyComplete(state.dust.state.progress) &&
-          isProgressStrictlyComplete(state.unshielded.progress),
-      ),
+      Rx.filter((state: FacadeState) => isFacadeStateSynced(state)),
       Rx.tap(() => logger.info('Sync complete')),
       Rx.tap((state: FacadeState) => {
         const shieldedBalances = state.shielded.balances || {};
         const unshieldedBalances = state.unshielded.balances || {};
-        const dustBalances = state.dust.walletBalance(new Date(Date.now())) || 0n;
+        const dustBalances = state.dust.balance(new Date(Date.now())) || 0n;
 
         logger.info(
           `Wallet balances after sync - Shielded: ${JSON.stringify(shieldedBalances)}, Unshielded: ${JSON.stringify(unshieldedBalances)}, Dust: ${dustBalances}`,
         );
-      }),
-      Rx.timeout({
-        each: timeout,
-        with: () => Rx.throwError(() => new Error(`Wallet sync timeout after ${timeout}ms`)),
       }),
     ),
   );
@@ -107,6 +101,7 @@ export const waitForUnshieldedFunds = async (
   env: EnvironmentConfiguration,
   tokenType: UnshieldedTokenType,
   fundFromFaucet = false,
+  throttleTime = 2_000,
 ): Promise<UnshieldedWalletState> => {
   const initialState = await getInitialUnshieldedState(logger, wallet.unshielded);
   const unshieldedAddress = UnshieldedAddress.codec.encode(getNetworkId(), initialState.address);
@@ -119,8 +114,31 @@ export const waitForUnshieldedFunds = async (
   if (initialBalance === undefined || initialBalance === 0n) {
     logger.info(`Your wallet initial balance is: 0 (not yet initialized)`);
     logger.info(`Waiting to receive tokens...`);
-    const facadeState = await syncWallet(logger, wallet);
-    return facadeState.unshielded;
+    return Rx.firstValueFrom(
+      wallet.state().pipe(
+        Rx.tap((state: FacadeState) => {
+          const balance = state.unshielded.balances[tokenType.raw] ?? 0n;
+          logger.debug(
+            `Wallet funds state emission: { synced=${isFacadeStateSynced(state)}, balance=${balance.toString()} }`,
+          );
+        }),
+        Rx.throttleTime(throttleTime),
+        Rx.filter(
+          (state: FacadeState) => isFacadeStateSynced(state) && (state.unshielded.balances[tokenType.raw] ?? 0n) > 0n,
+        ),
+        Rx.tap(() => logger.info('Sync complete')),
+        Rx.tap((state: FacadeState) => {
+          const shieldedBalances = state.shielded.balances || {};
+          const unshieldedBalances = state.unshielded.balances || {};
+          const dustBalances = state.dust.balance(new Date(Date.now())) || 0n;
+
+          logger.info(
+            `Wallet balances after sync - Shielded: ${JSON.stringify(shieldedBalances)}, Unshielded: ${JSON.stringify(unshieldedBalances)}, Dust: ${dustBalances}`,
+          );
+        }),
+        Rx.map((state: FacadeState) => state.unshielded),
+      ),
+    );
   }
   return initialState;
 };

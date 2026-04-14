@@ -1,5 +1,5 @@
 // This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import { CompiledContract } from "@midnight-ntwrk/compact-js";
+
 export * from "./managed/bboard/contract/index.js";
 export * from "./witnesses";
 
@@ -22,10 +23,7 @@ import * as Witnesses from "./witnesses";
 
 export const CompiledBBoardContractContract = CompiledContract.make<
   CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>
->(
-  "Counter",
-  CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>,
-).pipe(
+>("BBoard", CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>).pipe(
   CompiledContract.withWitnesses(Witnesses.witnesses),
-  CompiledContract.withCompiledFileAssets("./compiled/counter"),
+  CompiledContract.withCompiledFileAssets("./managed/bboard"),
 );

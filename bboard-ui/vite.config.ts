@@ -1,5 +1,5 @@
 // This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Separate chunk for WASM modules to avoid top-level await issues
-          wasm: ['@midnight-ntwrk/onchain-runtime-v2'],
+          wasm: ['@midnight-ntwrk/onchain-runtime-v3'],
         },
       },
     },
@@ -56,7 +56,7 @@ export default defineConfig({
       resolveId(source, importer) {
         // Special handling for the problematic module
         if (
-          source === '@midnight-ntwrk/onchain-runtime-v2' &&
+          source === '@midnight-ntwrk/onchain-runtime-v3' &&
           importer &&
           importer.includes('@midnight-ntwrk/compact-runtime')
         ) {
@@ -86,9 +86,9 @@ export default defineConfig({
     include: ['@midnight-ntwrk/compact-runtime'],
     // Exclude WASM files and modules with top-level await from optimization
     exclude: [
-      '@midnight-ntwrk/onchain-runtime-v2',
-      '@midnight-ntwrk/onchain-runtime-v2/midnight_onchain_runtime_wasm_bg.wasm',
-      '@midnight-ntwrk/onchain-runtime-v2/midnight_onchain_runtime_wasm.js',
+      '@midnight-ntwrk/onchain-runtime-v3',
+      '@midnight-ntwrk/onchain-runtime-v3/midnight_onchain_runtime_wasm_bg.wasm',
+      '@midnight-ntwrk/onchain-runtime-v3/midnight_onchain_runtime_wasm.js',
     ],
   },
   define: {},
