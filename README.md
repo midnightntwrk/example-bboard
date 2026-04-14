@@ -2,8 +2,8 @@
 
 This project is built on the [Midnight Network](https://midnight.network/).
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.29.0-1abc9c.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.30.0-1abc9c.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://shields.io/)
 
 A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
 
@@ -24,13 +24,13 @@ bulletin-board/
 
 ### 1. Node.js Version Check
 
-You need Node.js (tested with current LTS):
+You need Node.js:
 
 ```bash
 node --version
 ```
 
-Expected output: `v24.11.1` or higher.
+Expected output: `v24.11.1` or higher. The repository includes an [.nvmrc](./.nvmrc) pinned to `24.11.1`.
 
 If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
 
@@ -48,39 +48,33 @@ If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop
 
 ### 3. Lace Wallet Extension (UI Only)
 
-For the web interface, install the official Cardano Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
+For the web interface, install the official Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
 
 After installing, set up the Midnight wallet:
 
-1. Open the Lace wallet extension and go to **Settings**
-2. Enable the **Beta Program** to unlock Midnight network support
-3. Create a **new wallet** — Midnight will appear as a network option
-4. Go to **Settings > Midnight** and set **Network** to **Preprod**
-5. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
-6. Click **Save configuration**
-7. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
-8. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
+1. Create a **new wallet** — Midnight will appear as a network option
+2. Set **Network** to **Preprod**
+3. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
+4. Click **Enter Wallet**
+5. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
+6. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
 
 ## Setup Instructions
 
 ### Install Project Dependencies
 
 ```bash
-# Install root dependencies
 npm install
-
-# Install API dependencies
-cd api && npm install && cd ..
-
-# Install contract dependencies and compile
-cd contract && npm install
 ```
+
+This repository uses npm workspaces. Run installation once from the repository root.
 
 ### Compile the Smart Contract
 
-The Compact compiler (v0.29.0) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+The Compact compiler (`compactc 0.30.0`) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
 
 ```bash
+cd contract
 npm run compact    # Compiles the Compact contract
 npm run build      # Copies compiled files to dist/
 cd ..
@@ -105,7 +99,6 @@ Compiling 2 circuits:
 
 ```bash
 cd bboard-cli
-npm install
 npm run build
 cd ..
 ```
@@ -116,12 +109,22 @@ Only needed if you want to use the web interface:
 
 ```bash
 cd bboard-ui
-npm install
 npm run build
 cd ..
 ```
 
 ## Option 1: CLI Interface
+
+### Start the Proof Server
+
+The CLI requires a local proof server running in Docker:
+
+```bash
+cd bboard-cli
+docker compose -f proof-server-local.yml up -d
+```
+
+This uses `midnightntwrk/proof-server:8.0.3` on `http://127.0.0.1:6300`.
 
 ### Run the CLI
 
@@ -141,7 +144,7 @@ npm run preview-remote
 2. The system will generate a wallet address and seed
 3. **Save both the address and seed** - you'll need them later
 
-Expected output:
+Expected output is similar to:
 
 ```
 Your wallet seed is: [64-character hex string]
@@ -157,7 +160,7 @@ Before deploying contracts, you need testnet tokens.
 3. Paste your address and request funds
 4. Wait for the CLI to detect the funds (takes 2-3 minutes)
 
-Expected output:
+Expected output after funding is similar to:
 
 ```
 Your NIGHT wallet balance is: 1000000000
@@ -197,6 +200,7 @@ If you haven't started the proof server for the CLI, start it now:
 ```bash
 cd bboard-cli
 docker compose -f proof-server-local.yml up -d
+cd ..
 ```
 
 Verify it's running:
@@ -234,6 +238,7 @@ The UI will be available at:
 
 - Get Testnet tNIGHT on [Preprod Faucet](https://faucet.preprod.midnight.network/) or [Preview Faucet](https://faucet.preview.midnight.network/)
 - [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
+- [Compatibility Matrix](https://docs.midnight.network/relnotes/support-matrix) - Current supported Midnight component versions
 - [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
 - Get Lace wallet on the [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia)
 
@@ -241,8 +246,8 @@ The UI will be available at:
 
 | Common Issue                       | Solution                                                                                                  |
 | ---------------------------------- |-----------------------------------------------------------------------------------------------------------|
-| `npm install` fails                | Ensure you're using Node.js LTS version. If you get ERESOLVE errors, try `npm install --legacy-peer-deps` |
-| Contract compilation fails         | Ensure you're in `contract` directory and run `npm run compact`                                           |
+| `npm install` fails                | Ensure you're using Node `v24.11.1` or newer. Older Node versions can install with warnings but are not the target runtime |
+| Contract compilation fails         | Ensure the Compact toolchain is installed and run `npm run compact` from `contract/`                      |
 | Network connection timeout         | CLI requires internet connection, restart if connection times out                                         |
 | Token funding takes too long       | Wait 1-2 minutes, funding is automatic in CLI                                                             |
 | "Application not authorized" error | Start proof server: `docker compose -f proof-server-local.yml up -d`                                      |
@@ -259,19 +264,8 @@ The UI will be available at:
 - Contract must be compiled before building CLI or UI
 - Fund your wallet using the testnet faucet before deploying contracts
 
-## Repository Notes / Temporary Workarounds
-
-This repository contains several workarounds required due to current limitations in upstream tooling and dependencies. Each item below documents a concrete deviation from the default or expected setup.
-
-- **Modified testkit sources**
-  Some parts of `midnight-testkit-js` are vendored into this repository and modified to work correctly with the current setup.
+## Implementation Notes
 
 - **Transaction fee configuration**  
-  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from 'midnight-testkit-js' is required on the Undeployed network (lower values fail with `BalanceCheckOverspend` on the `midnight-node` side). On the Preview network, that high overhead prevents transaction creation because it requires a large amount of dust, so it is overridden and set to `1_000n`. The root cause is not yet clear.
-
-- **LevelDB private state provider**  
-  The `levelDbPrivateStateProvider`, shipped with Node.js dependencies, does not work in browser environments. An in-memory private state provider is used instead; the implementation is copied from `midnight-js`.
-
-- **Overall API Usage**
-  Some of the tooling used in `midnight-testkit-js`, `midnight-js` and `midnight-wallet` is not currently well suited for direct application use. Significant wiring and integration logic is required, parts of which are copied into this repository.
-  More flexible and composable APIs would reduce the need for copying and modification, allowing consumers to extend functionality rather than patch or fork existing implementations.
+  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from `@midnight-ntwrk/testkit-js` is required on the `undeployed` network. Lower values can fail with `BalanceCheckOverspend` on the node side. On remote networks, that overhead requires too much dust, so the CLI overrides it to `1_000n`.
+- CLI private state is stored per contract address, matching the `Midnight.js 4.x` private-state provider model.

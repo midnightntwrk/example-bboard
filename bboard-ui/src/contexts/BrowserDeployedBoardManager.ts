@@ -48,11 +48,11 @@ import {
   SignatureEnabled,
   Transaction,
   TransactionId,
-} from '@midnight-ntwrk/ledger-v7';
+} from '@midnight-ntwrk/ledger-v8';
 import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
-import { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
+import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 
 /**
  * An in-progress bulletin board deployment.
