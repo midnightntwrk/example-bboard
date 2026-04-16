@@ -27,12 +27,12 @@ export default defineConfig({
     minify: false,
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Separate chunk for WASM modules to avoid top-level await issues
-          wasm: ['@midnight-ntwrk/onchain-runtime-v3'],
+          if (id.includes('onchain-runtime-v3')) return 'wasm';
         },
       },
-    },
+      },
     commonjsOptions: {
       // Transform CommonJS to ESM more aggressively
       transformMixedEsModules: true,
@@ -72,7 +72,7 @@ export default defineConfig({
     },
   ],
   optimizeDeps: {
-    esbuildOptions: {
+    rolldownOptions: {
       target: 'esnext',
       supported: { 'top-level-await': true },
       // Configure ESBuild to handle Node.js-style modules
@@ -92,6 +92,10 @@ export default defineConfig({
     ],
   },
   define: {},
+  checks: {
+    importIsUndefined: false,
+    pluginTimings: false,
+  },
   // Add specific import configuration for more control
   resolve: {
     // Ensure WASM files are loaded properly
