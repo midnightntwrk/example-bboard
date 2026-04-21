@@ -74,11 +74,12 @@ export class BBoardSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  public post(message: string): Ledger {
+  public post(message: string, nowSecs: bigint): Ledger {
     // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.post(
       this.circuitContext,
       message,
+      nowSecs,
     ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
