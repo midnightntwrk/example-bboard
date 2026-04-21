@@ -154,6 +154,12 @@ const displayPrivateState = async (providers: BBoardProviders, logger: Logger): 
  * determine if the current user is the owner of the current message.
  */
 
+const formatDuration = (secs: bigint): string => {
+  const m = secs / 60n;
+  const s = secs % 60n;
+  return m > 0n ? `${m}m ${s}s` : `${s}s`;
+};
+
 const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger: Logger) => {
   if (ledgerState === undefined) {
     logger.info(`No bulletin board state currently available`);
@@ -164,6 +170,19 @@ const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger
     logger.info(`Current message is: '${latestMessage}'`);
     logger.info(`Current sequence is: ${ledgerState.sequence}`);
     logger.info(`Current owner is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
+    if (ledgerState.state === State.OCCUPIED && ledgerState.postTimestamp > 0n) {
+      const nowSecs = BigInt(Math.floor(Date.now() / 1000));
+      const ageSecs = nowSecs - (ledgerState.postTimestamp - 180n);
+      const remainingSecs = ledgerState.postTimestamp - nowSecs;
+      if (ageSecs > 0n) {
+        logger.info(`Post age: ${formatDuration(ageSecs)}`);
+      }
+      if (remainingSecs > 0n) {
+        logger.info(`Expires in: ${formatDuration(remainingSecs)}`);
+      } else {
+        logger.info(`Post expired ${formatDuration(-remainingSecs)} ago (can be removed by anyone)`);
+      }
+    }
   }
 };
 
