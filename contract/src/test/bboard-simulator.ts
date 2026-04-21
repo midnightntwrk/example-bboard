@@ -91,6 +91,13 @@ export class BBoardSimulator {
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
+  public setBlockTime(secondsSinceEpoch: bigint): void {
+    this.circuitContext.currentQueryContext.block = {
+      ...this.circuitContext.currentQueryContext.block,
+      secondsSinceEpoch,
+    };
+  }
+
   public publicKey(): Uint8Array {
     const sequence = convertFieldToBytes(
       32,

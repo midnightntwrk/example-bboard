@@ -164,4 +164,77 @@ describe("BBoard smart contract", () => {
       "failed assert: Attempted to take down post, but not the current owner",
     );
   });
+
+  it("doesn't let a non-owner take down a post before it expires", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    const nowSecs = simulator.getLedger().postTimestamp + 60n;
+    simulator.post(
+      "The most important step a man can take is not the first one, is it? It's the next one.",
+      nowSecs,
+    );
+    // postTimestamp is nowSecs + 180; set block time strictly before that
+    const postTimestamp = simulator.getLedger().postTimestamp;
+    simulator.setBlockTime(postTimestamp - 1n);
+    simulator.switchUser(randomBytes(32));
+    expect(() => simulator.takeDown()).toThrow(
+      "failed assert: Attempted to take down post, but not the current owner",
+    );
+  });
+
+  it("lets the original poster take down their own post before it expires", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    const initialPublicKey = simulator.publicKey();
+    const nowSecs = simulator.getLedger().postTimestamp + 60n;
+    const message =
+      "I am not ashamed of what I am. I am not afraid of what I know.";
+
+    simulator.post(message, nowSecs);
+    // set block time strictly before expiration
+    const postTimestamp = simulator.getLedger().postTimestamp;
+    simulator.setBlockTime(postTimestamp - 1n);
+    simulator.takeDown();
+    const ledgerState = simulator.getLedger();
+    expect(ledgerState.sequence).toEqual(2n);
+    expect(ledgerState.state).toEqual(State.VACANT);
+    expect(ledgerState.message.is_some).toEqual(false);
+    expect(ledgerState.owner).toEqual(initialPublicKey);
+  });
+
+  it("lets anyone remove an expired post", () => {
+    const ownerSimulator = new BBoardSimulator(randomBytes(32));
+    const nowSecs = ownerSimulator.getLedger().postTimestamp + 60n;
+    ownerSimulator.post(
+      "Somebody has to start. Somebody has to step forward and do what is right.",
+      nowSecs,
+    );
+    // advance block time past expiration
+    const postTimestamp = ownerSimulator.getLedger().postTimestamp;
+    ownerSimulator.setBlockTime(postTimestamp + 1n);
+    ownerSimulator.switchUser(randomBytes(32));
+    ownerSimulator.takeDown();
+    const ledgerState = ownerSimulator.getLedger();
+    expect(ledgerState.state).toEqual(State.VACANT);
+    expect(ledgerState.message.is_some).toEqual(false);
+  });
+
+  it("increments sequence counter correctly after expiration-based takedown", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    expect(simulator.getLedger().sequence).toEqual(1n);
+    let nowSecs = simulator.getLedger().postTimestamp + 60n;
+    simulator.post("There's always another secret.", nowSecs);
+    expect(simulator.getLedger().sequence).toEqual(1n);
+    // expire the post and have a non-owner take it down
+    const postTimestamp = simulator.getLedger().postTimestamp;
+    simulator.setBlockTime(postTimestamp + 1n);
+    simulator.switchUser(randomBytes(32));
+    simulator.takeDown();
+    expect(simulator.getLedger().sequence).toEqual(2n);
+    // post again (with the new user who took it down) and verify sequence stays at 2
+    nowSecs = simulator.getLedger().postTimestamp + 60n;
+    simulator.post("I'm going to do something slightly dramatic.", nowSecs);
+    expect(simulator.getLedger().sequence).toEqual(2n);
+    // take down the second post and verify sequence increments to 3
+    simulator.takeDown();
+    expect(simulator.getLedger().sequence).toEqual(3n);
+  });
 });
