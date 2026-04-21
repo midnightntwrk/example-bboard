@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import {
   Backdrop,
+  Box,
   CircularProgress,
   Card,
   CardActions,
@@ -238,27 +239,39 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
               <Skeleton variant="rectangular" width={245} height={160} />
             )}
           </CardContent>
-          <CardActions>
+          <CardActions sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
             {deployedBoardAPI ? (
               <React.Fragment>
-                <IconButton
-                  title="Post message"
-                  data-testid="board-post-message-btn"
-                  disabled={boardState?.state === State.OCCUPIED || !messagePrompt?.length}
-                  onClick={onPostMessage}
-                >
-                  <WriteIcon />
-                </IconButton>
-                <IconButton
-                  title="Take down message"
-                  data-testid="board-take-down-message-btn"
-                  disabled={
-                    boardState?.state === State.VACANT || (boardState?.state === State.OCCUPIED && !boardState.isOwner)
-                  }
-                  onClick={onDeleteMessage}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                <Box>
+                  <IconButton
+                    title="Post message"
+                    data-testid="board-post-message-btn"
+                    disabled={boardState?.state === State.OCCUPIED || !messagePrompt?.length}
+                    onClick={onPostMessage}
+                  >
+                    <WriteIcon />
+                  </IconButton>
+                  <IconButton
+                    title="Take down message"
+                    data-testid="board-take-down-message-btn"
+                    disabled={
+                      boardState?.state === State.VACANT ||
+                      (boardState?.state === State.OCCUPIED && !boardState.isOwner)
+                    }
+                    onClick={onDeleteMessage}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+                {boardState?.state === State.OCCUPIED && boardState.postTimestamp > 0n && (
+                  <Typography variant="caption" color="text.secondary" textAlign="right">
+                    Expires{' '}
+                    {new Date(Number(boardState.postTimestamp) * 1000).toLocaleString(undefined, {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}
+                  </Typography>
+                )}
               </React.Fragment>
             ) : (
               <Skeleton variant="rectangular" width={80} height={20} />

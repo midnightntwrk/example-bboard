@@ -111,6 +111,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
           message: ledgerState.message.value,
           sequence: ledgerState.sequence,
           isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
+          postTimestamp: ledgerState.postTimestamp,
         };
       },
     );
