@@ -70,6 +70,15 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
   const [boardState, setBoardState] = useState<BBoardDerivedState>();
   const [messagePrompt, setMessagePrompt] = useState<string>();
   const [isWorking, setIsWorking] = useState(!!boardDeployment$);
+  const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(BigInt(Math.floor(Date.now() / 1000))), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isExpired =
+    boardState?.state === State.OCCUPIED && boardState.postTimestamp > 0n && now > boardState.postTimestamp;
 
   // Two simple callbacks that call `resolve(...)` to either deploy or join a bulletin board
   // contract. Since the `DeployedBoardContext` will create a new board and update the UI, we
@@ -252,11 +261,11 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                     <WriteIcon />
                   </IconButton>
                   <IconButton
-                    title="Take down message"
+                    title={isExpired ? 'Remove expired post' : 'Take down message'}
                     data-testid="board-take-down-message-btn"
                     disabled={
                       boardState?.state === State.VACANT ||
-                      (boardState?.state === State.OCCUPIED && !boardState.isOwner)
+                      (boardState?.state === State.OCCUPIED && !boardState.isOwner && !isExpired)
                     }
                     onClick={onDeleteMessage}
                   >
@@ -264,8 +273,8 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                   </IconButton>
                 </Box>
                 {boardState?.state === State.OCCUPIED && boardState.postTimestamp > 0n && (
-                  <Typography variant="caption" color="text.secondary" textAlign="right">
-                    Expires{' '}
+                  <Typography variant="caption" color={isExpired ? 'warning.main' : 'text.secondary'} textAlign="right">
+                    {isExpired ? 'Expired: ' : 'Expires: '}
                     {new Date(Number(boardState.postTimestamp) * 1000).toLocaleString(undefined, {
                       dateStyle: 'short',
                       timeStyle: 'short',
