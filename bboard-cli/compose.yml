@@ -7,7 +7,7 @@ services:
       - '6300'
 
   indexer:
-    image: 'midnightntwrk/indexer-standalone:3.0.0'
+    image: 'midnightntwrk/indexer-standalone:3.1.0@sha256:fca6e6909a68b9ae30d9eff76225ac57cda2b7d3bf45be848d0203a192fbb650'
     container_name: 'indexer_$TESTCONTAINERS_UID'
     ports:
       - '8088'
@@ -21,7 +21,7 @@ services:
       node:
         condition: service_started
   node:
-    image: 'midnightntwrk/midnight-node:0.20.1'
+    image: 'midnightntwrk/midnight-node:0.22.3@sha256:7489838b12e341c78bcbf0e102bb519a4999c7f9d7fbc632493351af3feeb35c'
     container_name: 'node_$TESTCONTAINERS_UID'
     ports:
       - "9944"
