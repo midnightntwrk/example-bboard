@@ -39,7 +39,7 @@
     "@midnight-ntwrk/wallet-sdk-hd": "^3.0.0",
     "@midnight-ntwrk/wallet-sdk-shielded": "^2.0.0",
     "@midnight-ntwrk/wallet-sdk-unshielded-wallet": "^2.0.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.2",
     "buffer": "^6.0.3",
     "fp-ts": "^2.16.11",
     "pino": "^10.3.1",
