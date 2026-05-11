@@ -1,18 +1,3 @@
-// This file is part of midnightntwrk/example-bboard.
-// Copyright (C) Midnight Foundation
-// SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import {
   type CircuitContext,
   QueryContext,
@@ -29,7 +14,8 @@ import {
 import { type BBoardPrivateState, witnesses } from "../witnesses.js";
 
 /**
- * Serves as a testbed to exercise the contract in tests
+ * MANO Simulator — exercises the anonymous check-in contract in tests
+ * without a live proof server or blockchain connection.
  */
 export class BBoardSimulator {
   readonly contract: Contract<BBoardPrivateState>;
@@ -55,15 +41,8 @@ export class BBoardSimulator {
     };
   }
 
-  /***
-   * Switch to a different secret key for a different user
-   *
-   * TODO: is there a nicer abstraction for testing multi-user dApps?
-   */
   public switchUser(secretKey: Uint8Array) {
-    this.circuitContext.currentPrivateState = {
-      secretKey,
-    };
+    this.circuitContext.currentPrivateState = { secretKey };
   }
 
   public getLedger(): Ledger {
@@ -74,32 +53,55 @@ export class BBoardSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  public post(message: string): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    this.circuitContext = this.contract.impureCircuits.post(
-      this.circuitContext,
-      message,
-    ).context;
-    return ledger(this.circuitContext.currentQueryContext.state);
-  }
-
-  public takeDown(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.takeDown(
-      this.circuitContext,
-    ).context;
-    return ledger(this.circuitContext.currentQueryContext.state);
-  }
-
   public publicKey(): Uint8Array {
-    const sequence = convertFieldToBytes(
-      32,
-      this.getLedger().sequence,
-      "bboard-simulator.ts",
-    );
     return this.contract.circuits.publicKey(
       this.circuitContext,
       this.getPrivateState().secretKey,
-      sequence,
     ).result;
+  }
+
+  public enroll(dateStr: string): Ledger {
+    this.circuitContext = this.contract.impureCircuits.enroll(
+      this.circuitContext,
+      dateStr,
+    ).context;
+    return ledger(this.circuitContext.currentQueryContext.state);
+  }
+
+  public checkIn(dateStr: string): Ledger {
+    this.circuitContext = this.contract.impureCircuits.checkIn(
+      this.circuitContext,
+      dateStr,
+    ).context;
+    return ledger(this.circuitContext.currentQueryContext.state);
+  }
+
+  public verifyMilestone(threshold: bigint): Ledger {
+    this.circuitContext = this.contract.impureCircuits.verifyMilestone(
+      this.circuitContext,
+      threshold,
+    ).context;
+    return ledger(this.circuitContext.currentQueryContext.state);
+  }
+
+  public revokeEnrollment(): Ledger {
+    this.circuitContext = this.contract.impureCircuits.revokeEnrollment(
+      this.circuitContext,
+    ).context;
+    return ledger(this.circuitContext.currentQueryContext.state);
+  }
+
+  public pauseContract(): Ledger {
+    this.circuitContext = this.contract.impureCircuits.pauseContract(
+      this.circuitContext,
+    ).context;
+    return ledger(this.circuitContext.currentQueryContext.state);
+  }
+
+  public resumeContract(): Ledger {
+    this.circuitContext = this.contract.impureCircuits.resumeContract(
+      this.circuitContext,
+    ).context;
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 }

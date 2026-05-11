@@ -1,149 +1,107 @@
-// This file is part of midnightntwrk/example-bboard.
-// Copyright (C) Midnight Foundation
-// SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import { BBoardSimulator } from "./bboard-simulator.js";
-import {
-  NetworkId,
-  setNetworkId,
-} from "@midnight-ntwrk/midnight-js-network-id";
+import { NetworkId, setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
-import { State } from "../managed/bboard/contract/index.js";
 
 setNetworkId("undeployed" as NetworkId);
 
-describe("BBoard smart contract", () => {
+describe("MANO anonymous check-in contract", () => {
+
   it("generates initial ledger state deterministically", () => {
     const key = randomBytes(32);
-    const simulator0 = new BBoardSimulator(key);
-    const simulator1 = new BBoardSimulator(key);
-    expect(simulator0.getLedger()).toEqual(simulator1.getLedger());
+    const sim0 = new BBoardSimulator(key);
+    const sim1 = new BBoardSimulator(key);
+    expect(sim0.getLedger()).toEqual(sim1.getLedger());
   });
 
-  it("properly initializes ledger state and private state", () => {
-    const key = randomBytes(32);
-    const simulator = new BBoardSimulator(key);
-    const initialLedgerState = simulator.getLedger();
-    expect(initialLedgerState.sequence).toEqual(1n);
-    expect(initialLedgerState.message.is_some).toEqual(false);
-    expect(initialLedgerState.message.value).toEqual("");
-    expect(initialLedgerState.owner).toEqual(new Uint8Array(32));
-    expect(initialLedgerState.state).toEqual(State.VACANT);
-    const initialPrivateState = simulator.getPrivateState();
-    expect(initialPrivateState).toEqual({ secretKey: key });
+  it("properly initializes ledger state", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    const state = sim.getLedger();
+    expect(state.isEnrolled).toEqual(false);
+    expect(state.isRevoked).toEqual(false);
+    expect(state.isPaused).toEqual(false);
+    expect(state.owner).toEqual(new Uint8Array(32));
   });
 
-  it("lets you set a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const message =
-      "Szeth-son-son-Vallano, Truthless of Shinovar, wore white on the day he was to kill a king";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(1n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  it("enrolls a new participant successfully", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    const state = sim.enroll("2026-05-15");
+    expect(state.isEnrolled).toEqual(true);
+    expect(state.isRevoked).toEqual(false);
+    expect(state.owner).toEqual(sim.publicKey());
+    expect(state.checkInDate.is_some).toEqual(true);
+    expect(state.checkInDate.value).toEqual("2026-05-15");
   });
 
-  it("lets you take down a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const initialPublicKey = simulator.publicKey();
-    const message =
-      "Prince Raoden of Arelon awoke early that morning, completely unaware that he had been damned for all eternity.";
-    simulator.post(message);
-    simulator.takeDown();
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(false);
-    expect(ledgerState.message.value).toEqual("");
-    // Technically the circuit doesn't clear the previous owner
-    expect(ledgerState.owner).toEqual(initialPublicKey);
-    expect(ledgerState.state).toEqual(State.VACANT);
+  it("records a check-in and increments milestone count", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    const beforeCount = sim.getLedger().milestoneCount;
+    const state = sim.checkIn("2026-05-16");
+    expect(state.milestoneCount).toEqual(beforeCount + 1n);
+    expect(state.checkInDate.value).toEqual("2026-05-16");
   });
 
-  it("lets you post another message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    simulator.post("Life before Death.");
-    simulator.takeDown();
-    const message = "Strength before Weakness.";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  it("verifies milestone after sufficient check-ins", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    sim.checkIn("2026-05-16");
+    const currentCount = sim.getLedger().milestoneCount;
+    expect(() => sim.verifyMilestone(currentCount)).not.toThrow();
   });
 
-  it("lets a different user post a message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Remember, the past need not become our future as well.");
-    simulator.takeDown();
-    simulator.switchUser(randomBytes(32));
-    const message = "Joy was more than just an absence of discomfort.";
-    simulator.post(message);
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  it("revokes enrollment successfully", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    const state = sim.revokeEnrollment();
+    expect(state.isEnrolled).toEqual(true);
+    expect(state.isRevoked).toEqual(true);
   });
 
-  it("doesn't let the same user post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "My name is Stephen Leeds, and I am perfectly sane. My hallucinations, however, are all quite mad.",
-    );
-    expect(() =>
-      simulator.post(
-        "You should know by now that I've already had greatness. I traded it for mediocrity and some measure of sanity.",
-      ),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
+  it("pauses and resumes the contract", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    const paused = sim.pauseContract();
+    expect(paused.isPaused).toEqual(true);
+    const resumed = sim.resumeContract();
+    expect(resumed.isPaused).toEqual(false);
   });
 
-  it("doesn't let different users post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Ash fell from the sky");
-    simulator.switchUser(randomBytes(32));
-    expect(() =>
-      simulator.post("I am, unfortunately, the hero of ages."),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
+  it("does not allow enrolling twice", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    expect(() => sim.enroll("2026-05-15")).toThrow("failed assert: already enrolled");
   });
 
-  it("doesn't let users take down someone elses posts", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "Sometimes a hypocrite is nothing more than a man in the process of changing.",
-    );
-    simulator.switchUser(randomBytes(32));
-    expect(() => simulator.takeDown()).toThrow(
-      "failed assert: Attempted to take down post, but not the current owner",
-    );
+  it("does not allow check-in without enrolling", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    expect(() => sim.checkIn("2026-05-15")).toThrow("failed assert: not enrolled");
+  });
+
+  it("does not allow check-in with a different secret key", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    sim.switchUser(randomBytes(32));
+    expect(() => sim.checkIn("2026-05-16")).toThrow("failed assert: not the enrolled participant");
+  });
+
+  it("does not allow check-in after revocation", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    sim.revokeEnrollment();
+    expect(() => sim.checkIn("2026-05-16")).toThrow("failed assert: enrollment revoked");
+  });
+
+  it("does not allow enroll when contract is paused", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.pauseContract();
+    expect(() => sim.enroll("2026-05-15")).toThrow("failed assert: contract is paused");
+  });
+
+  it("does not allow verifying a milestone that has not been reached", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.enroll("2026-05-15");
+    sim.checkIn("2026-05-16");
+    const wrongThreshold = sim.getLedger().milestoneCount + 1n;
+    expect(() => sim.verifyMilestone(wrongThreshold)).toThrow("failed assert: milestone count does not match threshold");
   });
 });

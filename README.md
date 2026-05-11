@@ -1,277 +1,100 @@
-# Bulletin Board DApp
+# MANO — Anonymous Check-In with ZK Attendance Credentials
 
-This project is built on the [Midnight Network](https://midnight.network/).
+**Developer:** Andres F. Chavez — Anonymous Haven LLC  
+**Track:** D — Custom Extension  
+**Network:** Midnight Preprod  
+**Hackathon:** May 15, 2026
 
-[![Generic badge](https://img.shields.io/badge/Compact%20Compiler-0.30.0-1abc9c.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://shields.io/)
+---
 
+## What This Is and Why It Exists
 
-> **Use this repo as a template. Do not fork it.**
->  
-> This repository is intended to be used via GitHub’s “Use this template” flow.  
-> Forking this repo is discouraged, as forks are not tracked as independent projects.
+MANO is a zero-knowledge anonymous check-in system built for a peer recovery overdose drop-in center (ODC) operated by Recovery Alliance in El Paso, Texas. The people who walk through that door are among the most vulnerable in any community — unhoused, in active addiction, often with criminal justice involvement. Many have been burned by systems that promised confidentiality and then used their data against them.
 
-A Midnight smart contract example demonstrating a simple one-item bulletin board with zero-knowledge proofs on testnet. Users can post a single message at a time, and only the message author can remove it.
+The core problem: recovery service providers need attendance records to satisfy funder reporting requirements, but participants need genuine privacy protection. Traditional databases create a permanent, identifiable record of every visit. Even "de-identified" data can be re-linked. For people who have been criminalized for their substance use, that risk is not abstract.
 
-## Project Structure
+MANO's answer is **private by default, transparent by choice**. A participant enrolls once and receives a ZK credential. Every subsequent check-in proves they are the enrolled participant — without ever revealing who they are. The on-chain record shows that *someone* checked in on *this date* and has *this many* verified visits. Nothing else.
 
-```
-bulletin-board/
-├── contract/               # Smart contract in Compact language
-│   └── src/               # Contract source and utilities
-├── api/                   # Methods, classes and types for CLI and UI
-├── bboard-cli/            # Command-line interface
-│   └── src/               # CLI implementation
-└── bboard-ui/             # Web browser interface
-    └── src/               # Web UI implementation
-```
+When a participant wants to use their attendance record — for employment verification, housing applications, or reentry programs — they can selectively disclose their milestone count to a specific verifier, cryptographically proven, without revealing their identity to the blockchain or to anyone else in the system.
 
-## Prerequisites
+This is a real application being built for real people. The Midnight blockchain makes it possible.
 
-### 1. Node.js Version Check
+---
 
-You need Node.js:
+## Compact Patterns Used
 
-```bash
-node --version
+### Sealed vs. Exported Ledger Fields
+
+The contract uses `export ledger` for all fields. The privacy of participant identity does not come from hiding the `owner` field itself — it comes from the fact that `owner` stores a *derived public key*, not any real-world identifier. Without the secret key that generated it, the on-chain value reveals nothing.
+
+```compact
+export ledger owner: Bytes<32>;       // derived public key — reveals no identity
+export ledger isEnrolled: Boolean;    // public enrollment status
+export ledger milestoneCount: Counter; // verifiable attendance count
 ```
 
-Expected output: `v24.11.1` or higher. The repository includes an [.nvmrc](./.nvmrc) pinned to `24.11.1`.
+### The `disclose()` Requirement
 
-If you get a lower version: [Install Node.js LTS](https://nodejs.org/).
+Any value derived from a witness (private data) that gets stored in the ledger must be wrapped in `disclose()`. This is one of Compact's most important safety constraints — it makes the boundary between private and public explicit and auditable.
 
-### 2. Docker Installation
-
-The [proof server](https://docs.midnight.network/develop/tutorial/using/proof-server) runs in Docker and is required for both CLI and UI to generate zero-knowledge proofs:
-
-```bash
-docker --version
+```compact
+owner = disclose(pk);
+isEnrolled = disclose(true);
 ```
 
-Expected output: `Docker version X.X.X`.
+### Witness Functions and Private State
 
-If Docker is not found: [Install Docker Desktop](https://docs.docker.com/desktop/). Make sure Docker Desktop is running.
+The `localSecretKey` witness provides the participant's private credential — a 32-byte value derived from their biometric or device ID that never leaves their machine. The ZK proof system proves knowledge of this key without transmitting it.
 
-### 3. Lace Wallet Extension (UI Only)
-
-For the web interface, install the official Lace wallet extension on [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia) (tested with version 1.36.0).
-
-After installing, set up the Midnight wallet:
-
-1. Create a **new wallet** — Midnight will appear as a network option
-2. Set **Network** to **Preprod**
-3. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
-4. Click **Enter Wallet**
-5. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
-6. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
-
-## Setup Instructions
-
-### Install Project Dependencies
-
-```bash
-npm install
+```compact
+witness localSecretKey(): Bytes<32>;
 ```
 
-This repository uses npm workspaces. Run installation once from the repository root.
+### Pure Circuits for Deterministic Derivation
 
-### Compile the Smart Contract
+`publicKey` is declared as `export pure circuit` — it has no side effects and is deterministic. Given the same secret key, it always produces the same public key. This is the foundation of the ownership proof: enroll with a derived key, prove ownership by re-deriving the same key.
 
-The Compact compiler (`compactc 0.30.0`) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
-
-```bash
-cd contract
-npm run compact    # Compiles the Compact contract
-npm run build      # Copies compiled files to dist/
-cd ..
+```compact
+export pure circuit publicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>(
+    [pad(32, "mano:participant:"), sk]
+  );
+}
 ```
 
-Expected output:
+Domain separation via `pad(32, "mano:participant:")` ensures hashes produced by this contract cannot collide with hashes from other contract types.
 
-```
-> compact
-> compact compile src/bboard.compact ./src/managed/bboard
+### Circuit Breaker Pattern
 
-Compiling 2 circuits:
-  circuit "post" (k=14, rows=10070)
-  circuit "takeDown" (k=14, rows=10087)
+`isPaused` is a Boolean ledger field checked at the start of every circuit. The `pauseContract` and `resumeContract` admin circuits implement an emergency stop — if a vulnerability is discovered or an operational issue arises, the contract can be frozen without destroying participant data.
 
-> build
-> rm -rf dist && tsc --project tsconfig.build.json && cp -Rf ./src/managed ./dist/managed && cp ./src/bboard.compact ./dist
+### Counter Fields
 
-```
+`sequence` and `milestoneCount` use Compact's `Counter` type, which increments monotonically. `milestoneCount` is the verifiable credential value — the number of confirmed check-ins. `sequence` tracks visit history on the ledger.
 
-### Build the CLI Interface
+---
 
-```bash
-cd bboard-cli
-npm run build
-cd ..
-```
+## Privacy Properties
 
-### Build the UI Interface (Optional)
+| Data | On-chain | Visible to staff | Visible to verifier |
+|---|---|---|---|
+| Participant name / identity | Never | Never | Never |
+| Secret key / biometric | Never | Never | Never |
+| Enrollment status | Yes (boolean) | Yes | Only if disclosed |
+| Check-in date | Yes (string) | Yes | Only if disclosed |
+| Milestone count | Yes (integer) | Yes | Only if disclosed |
+| Owner (derived public key) | Yes | Yes | Reveals nothing without secret key |
 
-Only needed if you want to use the web interface:
+The system proves three things without revealing identity: (1) this person is enrolled, (2) they are the enrolled participant, (3) they have attended a certain number of times.
 
-```bash
-cd bboard-ui
-npm run build
-cd ..
-```
+---
 
-## Option 1: CLI Interface
+## Trade-offs
 
-### Start the Proof Server
+**Fixed identity commitment vs. session-scoped keys.** An earlier version derived the public key from both the secret key and the current sequence, producing a different public key each session — stronger unlinkability. This was removed because it broke the ownership check after sequence increments. The current design uses a fixed commitment: `hash("mano:participant:", sk)`. The trade-off is that all check-ins by the same participant share the same derived public key on-chain. For a single-enrollment-per-contract model, this is acceptable.
 
-The CLI requires a local proof server running in Docker:
+**One contract per participant.** Each enrollment deploys a separate contract instance. This maximizes isolation between participants but increases chain footprint. A future version could use a single registry contract with per-participant sub-states.
 
-```bash
-cd bboard-cli
-docker compose -f proof-server-local.yml up -d
-```
+**Admin circuits are ungated.** `revokeEnrollment`, `pauseContract`, and `resumeContract` have no on-chain access control in this version — any caller can invoke them in the simulator. Production deployment would add an admin public key commitment checked at the start of those circuits.
 
-This uses `midnightntwrk/proof-server:8.0.3` on `http://127.0.0.1:6300`.
-
-### Run the CLI
-
-```bash
-# For preprod network
-npm run preprod-remote
-
-# For preview network
-npm run preview-remote
-```
-
-### Using the CLI
-
-#### Create a Wallet
-
-1. Choose option `1` to build a fresh wallet
-2. The system will generate a wallet address and seed
-3. **Save both the address and seed** - you'll need them later
-
-Expected output is similar to:
-
-```
-Your wallet seed is: [64-character hex string]
-Using unshielded address: mn_addr_preprod1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlxpwflz3fxdykaesrw0ln4 waiting for funds...
-```
-
-#### Fund Your Wallet
-
-Before deploying contracts, you need testnet tokens.
-
-1. Copy your wallet address from the output above
-2. Visit the [faucet](https://faucet.preprod.midnight.network/)
-3. Paste your address and request funds
-4. Wait for the CLI to detect the funds (takes 2-3 minutes)
-
-Expected output after funding is similar to:
-
-```
-Your NIGHT wallet balance is: 1000000000
-```
-
-#### Deploy Your Contract
-
-1. Choose the contract deployment option
-2. Wait for deployment (takes ~30 seconds)
-3. **Save the contract address** for future use
-
-Expected output:
-
-```
-Deployed bulletin board contract at address: [contract address]
-```
-
-#### Use the Bulletin Board
-
-You can now:
-
-- **Post** a message to the bulletin board
-- **View** the current message
-- **Remove** your message (only if you posted it)
-- **Exit** when done
-
-Each action creates a real transaction on Midnight Testnet using zero-knowledge proofs generated by the proof server.
-
-## Option 2: Web UI Interface
-
-The web interface uses the same proof server and requires additional browser setup.
-
-### Start the Proof Server (if not already running)
-
-If you haven't started the proof server for the CLI, start it now:
-
-```bash
-cd bboard-cli
-docker compose -f proof-server-local.yml up -d
-cd ..
-```
-
-Verify it's running:
-
-```bash
-docker ps
-```
-
-### Start the Web Interface
-
-The UI can run against preprod or preview networks:
-
-```bash
-cd bboard-ui
-
-# For preprod network
-npm run build:start
-
-# For preview network
-npm run build:start:preview
-```
-
-The UI will be available at:
-
-- http://127.0.0.1:8080
-
-### Browser Setup
-
-1. **Open the UI URL** in a browser with Lace wallet extension installed
-2. **Set up Lace wallet** if it's your first time
-3. **Authorize the application** when Lace wallet prompts
-4. Use the bulletin board web interface
-
-## Useful Links
-
-- Get Testnet tNIGHT on [Preprod Faucet](https://faucet.preprod.midnight.network/) or [Preview Faucet](https://faucet.preview.midnight.network/)
-- [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
-- [Compatibility Matrix](https://docs.midnight.network/relnotes/support-matrix) - Current supported Midnight component versions
-- [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
-- Get Lace wallet on the [Chrome Store](https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk) or the [Edge Store](https://microsoftedge.microsoft.com/addons/detail/lace/efeiemlfnahiidnjglmehaihacglceia)
-
-## Troubleshooting
-
-| Common Issue                       | Solution                                                                                                  |
-| ---------------------------------- |-----------------------------------------------------------------------------------------------------------|
-| `npm install` fails                | Ensure you're using Node `v24.11.1` or newer. Older Node versions can install with warnings but are not the target runtime |
-| Contract compilation fails         | Ensure the Compact toolchain is installed and run `npm run compact` from `contract/`                      |
-| Network connection timeout         | CLI requires internet connection, restart if connection times out                                         |
-| Token funding takes too long       | Wait 1-2 minutes, funding is automatic in CLI                                                             |
-| "Application not authorized" error | Start proof server: `docker compose -f proof-server-local.yml up -d`                                      |
-| Lace wallet not detected           | Install Lace wallet browser extension and refresh page                                                    |
-| Docker issues                      | Ensure Docker Desktop is running, check `docker --version`                                                |
-| Port 6300 in use                   | Run `docker compose down` then restart services                                                           |
-| Dependencies won't install         | Use Node.js LTS version. For older npm versions, you may need `--legacy-peer-deps`                        |
-| Contract deployment fails          | Verify wallet has sufficient balance and network connection                                               |
-
-## Notes
-
-- CLI and UI can run simultaneously and share the same proof server
-- Proof server (Docker) is required for both CLI and UI to generate zero-knowledge proofs
-- Contract must be compiled before building CLI or UI
-- Fund your wallet using the testnet faucet before deploying contracts
-
-## Implementation Notes
-
-- **Transaction fee configuration**  
-  The default `additionalFeeOverhead` value (`500_000_000_000_000_000n`) from `@midnight-ntwrk/testkit-js` is required on the `undeployed` network. Lower values can fail with `BalanceCheckOverspend` on the node side. On remote networks, that overhead requires too much dust, so the CLI overrides it to `1_000n`.
-- CLI private state is stored per contract address, matching the `Midnight.js 4.x` private-state provider model.
+**`verifyMilestone` uses equality, not inequality.** Compact circuits cannot perform `>=` comparisons on Field types directly — ZK arithmetic over finite fields does not support inequality without range proofs. The current design proves an exact milestone count. Future work could implement a range proof gadget for threshold verification.

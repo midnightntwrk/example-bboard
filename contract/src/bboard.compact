@@ -1,60 +1,67 @@
-// This file is part of midnightntwrk/example-counter.
-// Copyright (C) Midnight Foundation
-// SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 pragma language_version >= 0.20;
 
 import CompactStandardLibrary;
 
-export enum State {
-  VACANT,
-  OCCUPIED
-}
-
-export ledger state: State;
-
-export ledger message: Maybe<Opaque<"string">>;
-
-export ledger sequence: Counter;
-
 export ledger owner: Bytes<32>;
-
-constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
-  sequence.increment(1);
-}
+export ledger isEnrolled: Boolean;
+export ledger isRevoked: Boolean;
+export ledger sequence: Counter;
+export ledger milestoneCount: Counter;
+export ledger checkInDate: Maybe<Opaque<"string">>;
+export ledger isPaused: Boolean;
 
 witness localSecretKey(): Bytes<32>;
 
-export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
-  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
+// publicKey: fixed commitment — does NOT include sequence.
+// Enrollment creates a stable identity hash. Sequence still increments
+// on every check-in for ledger history, but ownership proof is stable.
+export pure circuit publicKey(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>(
+    [pad(32, "mano:participant:"), sk]
+  );
 }
 
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
+export circuit enroll(dateStr: Opaque<"string">): [] {
+  assert(!isPaused, "contract is paused");
+  assert(!isEnrolled, "already enrolled");
+  const sk = localSecretKey();
+  const pk = publicKey(sk);
+  owner = disclose(pk);
+  isEnrolled = disclose(true);
+  isRevoked = disclose(false);
+  checkInDate = disclose(some<Opaque<"string">>(dateStr));
+}
+
+export circuit checkIn(dateStr: Opaque<"string">): [] {
+  assert(!isPaused, "contract is paused");
+  assert(isEnrolled, "not enrolled");
+  assert(!isRevoked, "enrollment revoked");
+  const sk = localSecretKey();
+  const pk = publicKey(sk);
+  assert(owner == pk, "not the enrolled participant");
   sequence.increment(1);
-  message = none<Opaque<"string">>();
-  return formerMsg;
+  milestoneCount.increment(1);
+  checkInDate = disclose(some<Opaque<"string">>(dateStr));
 }
 
-export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
-  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
+export circuit verifyMilestone(threshold: Field): [] {
+  assert(!isPaused, "contract is paused");
+  assert(isEnrolled, "not enrolled");
+  assert(!isRevoked, "enrollment revoked");
+  const sk = localSecretKey();
+  const pk = publicKey(sk);
+  assert(owner == pk, "not the enrolled participant");
+  assert(milestoneCount as Field == threshold, "milestone count does not match threshold");
+}
+
+export circuit revokeEnrollment(): [] {
+  isRevoked = disclose(true);
+}
+
+export circuit pauseContract(): [] {
+  isPaused = disclose(true);
+}
+
+export circuit resumeContract(): [] {
+  isPaused = disclose(false);
 }
