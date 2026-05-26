@@ -4,6 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - 'dependencies'
       - 'github-actions'
@@ -12,6 +14,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 30
     labels:
       - 'dependencies'
@@ -53,6 +57,8 @@ updates:
     directory: "/contract"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 30
     labels:
       - 'dependencies'
@@ -82,6 +88,8 @@ updates:
     directory: "/bboard-cli"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 30
     labels:
       - 'dependencies'
