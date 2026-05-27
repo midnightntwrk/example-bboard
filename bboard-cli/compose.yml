@@ -21,7 +21,7 @@ services:
       node:
         condition: service_started
   node:
-    image: 'midnightntwrk/midnight-node:0.20.3'
+    image: 'midnightntwrk/midnight-node:0.22.3'
     container_name: 'node_$TESTCONTAINERS_UID'
     ports:
       - "9944"
