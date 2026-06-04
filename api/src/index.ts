@@ -111,6 +111,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
           message: ledgerState.message.value,
           sequence: ledgerState.sequence,
           isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
+          postTimestamp: ledgerState.postTimestamp,
         };
       },
     );
@@ -138,7 +139,8 @@ export class BBoardAPI implements DeployedBBoardAPI {
   async post(message: string): Promise<void> {
     this.logger?.info(`postingMessage: ${message}`);
 
-    const txData = await this.deployedContract.callTx.post(message);
+    const nowSecs = Math.floor(Date.now() / 1000); // Epoc seconds
+    const txData = await this.deployedContract.callTx.post(message, BigInt(nowSecs));
 
     this.logger?.trace({
       transactionAdded: {

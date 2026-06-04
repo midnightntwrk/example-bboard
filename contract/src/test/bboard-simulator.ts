@@ -74,11 +74,12 @@ export class BBoardSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  public post(message: string): Ledger {
+  public post(message: string, nowSecs: bigint): Ledger {
     // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.post(
       this.circuitContext,
       message,
+      nowSecs,
     ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
@@ -88,6 +89,13 @@ export class BBoardSimulator {
       this.circuitContext,
     ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
+  }
+
+  public setBlockTime(secondsSinceEpoch: bigint): void {
+    this.circuitContext.currentQueryContext.block = {
+      ...this.circuitContext.currentQueryContext.block,
+      secondsSinceEpoch,
+    };
   }
 
   public publicKey(): Uint8Array {

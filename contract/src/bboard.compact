@@ -30,24 +30,33 @@ export ledger sequence: Counter;
 
 export ledger owner: Bytes<32>;
 
+export ledger postTimestamp: Uint<64>;
+
 constructor() {
   state = State.VACANT;
+  postTimestamp = 0;
   message = none<Opaque<"string">>();
   sequence.increment(1);
 }
 
 witness localSecretKey(): Bytes<32>;
 
-export circuit post(newMessage: Opaque<"string">): [] {
+export circuit post(newMessage: Opaque<"string">, nowSecs: Uint<64>): [] {
   assert(state == State.VACANT, "Attempted to post to an occupied board");
+  assert(nowSecs > postTimestamp, "Attempted to post with an old/invalid timestamp value");
   owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
   message = disclose(some<Opaque<"string">>(newMessage));
   state = State.OCCUPIED;
+  const expSecs = nowSecs + 180 as Field as Uint<64>; // expires in 3 mins
+  postTimestamp = disclose(expSecs);
 }
 
 export circuit takeDown(): Opaque<"string"> {
   assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
+  assert(kernel.blockTimeGreaterThan(postTimestamp) ||
+         owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>),
+         "Attempted to take down post, but not the current owner and post didn't expired"
+         );
   const formerMsg = message.value;
   state = State.VACANT;
   sequence.increment(1);
