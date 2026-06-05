@@ -1,5 +1,5 @@
 // This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
@@ -45,10 +45,10 @@ import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-util
 import { TestEnvironment } from '@midnight-ntwrk/testkit-js';
 import { MidnightWalletProvider } from './midnight-wallet-provider';
 import { randomBytes } from '../../api/src/utils';
-import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
+import { unshieldedToken } from '@midnight-ntwrk/ledger-v8';
 import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
 import { generateDust } from './generate-dust';
-import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
+import { BBoardPrivateState } from '../../contract/src/witnesses.js';
 
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
@@ -196,29 +196,34 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
   try {
     while (true) {
       const choice = await rli.question(MAIN_LOOP_QUESTION);
-      switch (choice) {
-        case '1': {
-          const message = await rli.question(`What message do you want to post? `);
-          await bboardApi.post(message);
-          break;
+      try {
+        switch (choice) {
+          case '1': {
+            const message = await rli.question(`What message do you want to post? `);
+            await bboardApi.post(message);
+            break;
+          }
+          case '2':
+            await bboardApi.takeDown();
+            break;
+          case '3':
+            await displayLedgerState(providers, bboardApi.deployedContract, logger);
+            break;
+          case '4':
+            await displayPrivateState(providers, logger);
+            break;
+          case '5':
+            displayDerivedState(currentState, logger);
+            break;
+          case '6':
+            logger.info('Exiting...');
+            return;
+          default:
+            logger.error(`Invalid choice: ${choice}`);
         }
-        case '2':
-          await bboardApi.takeDown();
-          break;
-        case '3':
-          await displayLedgerState(providers, bboardApi.deployedContract, logger);
-          break;
-        case '4':
-          await displayPrivateState(providers, logger);
-          break;
-        case '5':
-          displayDerivedState(currentState, logger);
-          break;
-        case '6':
-          logger.info('Exiting...');
-          return;
-        default:
-          logger.error(`Invalid choice: ${choice}`);
+      } catch (e) {
+        logError(logger, e);
+        logger.info('Returning to main menu...');
       }
     }
   } finally {
@@ -318,8 +323,9 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
         privateStateStoreName: config.privateStateStoreName,
         signingKeyStoreName: `${config.privateStateStoreName}-signing-keys`,
         privateStoragePasswordProvider: () => {
-          return 'key-just-for-testing-here!';
+          return 'Bboard-Test-2026!';
         },
+        accountId: seed,
       }),
       publicDataProvider: indexerPublicDataProvider(envConfiguration.indexer, envConfiguration.indexerWS),
       zkConfigProvider: zkConfigProvider,

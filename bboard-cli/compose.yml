@@ -1,13 +1,13 @@
 services:
   proof-server:
-    image: midnightntwrk/proof-server:8.0.2
+    image: midnightntwrk/proof-server:8.0.3
     command: ['midnight-proof-server', '-v']
     container_name: "proof-server_$TESTCONTAINERS_UID"
     ports:
       - '6300'
 
   indexer:
-    image: 'midnightntwrk/indexer-standalone:3.0.0'
+    image: 'midnightntwrk/indexer-standalone:4.0.1'
     container_name: 'indexer_$TESTCONTAINERS_UID'
     ports:
       - '8088'
@@ -21,7 +21,7 @@ services:
       node:
         condition: service_started
   node:
-    image: 'midnightntwrk/midnight-node:0.20.1'
+    image: 'midnightntwrk/midnight-node:0.22.3'
     container_name: 'node_$TESTCONTAINERS_UID'
     ports:
       - "9944"
