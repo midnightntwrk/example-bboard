@@ -1,5 +1,5 @@
 // This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import {
   interval,
   map,
   type Observable,
-  of,
   take,
   tap,
   throwError,
@@ -49,11 +48,11 @@ import {
   SignatureEnabled,
   Transaction,
   TransactionId,
-} from '@midnight-ntwrk/ledger-v7';
+} from '@midnight-ntwrk/ledger-v8';
 import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';
-import { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
+import type { UnboundTransaction } from '@midnight-ntwrk/midnight-js-types';
 
 /**
  * An in-progress bulletin board deployment.
@@ -268,34 +267,29 @@ const initializeProviders = async (logger: Logger): Promise<BBoardProviders> => 
 };
 
 /** @internal */
-const connectToWallet = (logger: Logger, networkId: string): Promise<ConnectedAPI> => {
-  const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
+const getFirstCompatibleWallet = (): InitialAPI | undefined => {
+  if (!window.midnight) return undefined;
+  return Object.values(window.midnight).find(
+    (wallet): wallet is InitialAPI =>
+      !!wallet &&
+      typeof wallet === 'object' &&
+      'apiVersion' in wallet &&
+      semver.satisfies(wallet.apiVersion, COMPATIBLE_CONNECTOR_API_VERSION),
+  );
+};
 
+const COMPATIBLE_CONNECTOR_API_VERSION = '4.x';
+
+/** @internal */
+const connectToWallet = (logger: Logger, networkId: string): Promise<ConnectedAPI> => {
   return firstValueFrom(
     fnPipe(
       interval(100),
-      map(() => window.midnight?.mnLace),
+      map(() => getFirstCompatibleWallet()),
       tap((connectorAPI) => {
         logger.info(connectorAPI, 'Check for wallet connector API');
       }),
       filter((connectorAPI): connectorAPI is InitialAPI => !!connectorAPI),
-      concatMap((connectorAPI) =>
-        semver.satisfies(connectorAPI.apiVersion, COMPATIBLE_CONNECTOR_API_VERSION)
-          ? of(connectorAPI)
-          : throwError(() => {
-              logger.error(
-                {
-                  expected: COMPATIBLE_CONNECTOR_API_VERSION,
-                  actual: connectorAPI.apiVersion,
-                },
-                'Incompatible version of wallet connector API',
-              );
-
-              return new Error(
-                `Incompatible version of Midnight Lace wallet found. Require '${COMPATIBLE_CONNECTOR_API_VERSION}', got '${connectorAPI.apiVersion}'.`,
-              );
-            }),
-      ),
       tap((connectorAPI) => {
         logger.info(connectorAPI, 'Compatible wallet connector API found. Connecting.');
       }),

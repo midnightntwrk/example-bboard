@@ -1,5 +1,5 @@
 // This file is part of midnightntwrk/example-counter.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import * as utils from './utils/index.js';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
-import { BBoardPrivateState, createBBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
+import { BBoardPrivateState, createBBoardPrivateState } from '../../contract/src/witnesses.js';
 
 /** @internal */
 
@@ -75,6 +75,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
     private readonly logger?: Logger,
   ) {
     this.deployedContractAddress = deployedContract.deployTxData.public.contractAddress;
+    providers.privateStateProvider.setContractAddress(this.deployedContractAddress);
     this.state$ = combineLatest(
       [
         // Combine public (ledger) state with...
@@ -184,7 +185,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
     const deployedBBoardContract = await deployContract(providers, {
       compiledContract: CompiledBBoardContractContract,
       privateStateId: bboardPrivateStateKey,
-      initialPrivateState: await BBoardAPI.getPrivateState(providers),
+      initialPrivateState: createBBoardPrivateState(utils.randomBytes(32)),
     });
 
     logger?.trace({
@@ -216,7 +217,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
       contractAddress,
       compiledContract: CompiledBBoardContractContract,
       privateStateId: bboardPrivateStateKey,
-      initialPrivateState: await BBoardAPI.getPrivateState(providers),
+      initialPrivateState: await BBoardAPI.getPrivateState(providers, contractAddress),
     });
 
     logger?.trace({
@@ -228,7 +229,11 @@ export class BBoardAPI implements DeployedBBoardAPI {
     return new BBoardAPI(deployedBBoardContract, providers, logger);
   }
 
-  private static async getPrivateState(providers: BBoardProviders): Promise<BBoardPrivateState> {
+  private static async getPrivateState(
+    providers: BBoardProviders,
+    contractAddress: ContractAddress,
+  ): Promise<BBoardPrivateState> {
+    providers.privateStateProvider.setContractAddress(contractAddress);
     const existingPrivateState = await providers.privateStateProvider.get(bboardPrivateStateKey);
     return existingPrivateState ?? createBBoardPrivateState(utils.randomBytes(32));
   }
