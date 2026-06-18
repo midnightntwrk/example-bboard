@@ -212,7 +212,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
           <CardContent>
             {boardState ? (
               boardState.state === State.OCCUPIED ? (
-                <Typography data-testid="board-posted-message" minHeight={160} color="primary">
+                <Typography data-testid="board-posted-message" sx={{ minHeight: 160 }} color="primary">
                   {boardState.message}
                 </Typography>
               ) : (
@@ -228,7 +228,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                   placeholder="Message to post"
                   size="small"
                   color="primary"
-                  inputProps={{ style: { color: 'black' } }}
+                  slotProps={{ htmlInput: { style: { color: 'black' } } }}
                   onChange={(e) => {
                     setMessagePrompt(e.target.value);
                   }}
