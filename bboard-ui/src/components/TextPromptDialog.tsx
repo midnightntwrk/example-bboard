@@ -52,7 +52,7 @@ export const TextPromptDialog: React.FC<Readonly<TextPromptDialogProps>> = ({ pr
           size="small"
           color="primary"
           autoComplete="off"
-          inputProps={{ style: { color: 'black' } }}
+          slotProps={{ htmlInput: { style: { color: 'black' } } }}
           onChange={(e) => {
             setText(e.target.value);
           }}
