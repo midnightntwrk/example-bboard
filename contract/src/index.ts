@@ -20,10 +20,13 @@ export * from "./witnesses";
 
 import * as CompiledBBoardContract from "./managed/bboard/contract/index.js";
 import * as Witnesses from "./witnesses";
+import { fileURLToPath as __fileURLToPath } from "node:url";
+import { dirname as __dirnameFn, resolve as __resolvePath } from "node:path";
+const __compiledAssetsPath = __resolvePath(__dirnameFn(__fileURLToPath(import.meta.url)), "managed/bboard");
 
 export const CompiledBBoardContractContract = CompiledContract.make<
   CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>
 >("BBoard", CompiledBBoardContract.Contract<Witnesses.BBoardPrivateState>).pipe(
   CompiledContract.withWitnesses(Witnesses.witnesses),
-  CompiledContract.withCompiledFileAssets("./managed/bboard"),
+  CompiledContract.withCompiledFileAssets(__compiledAssetsPath),
 );

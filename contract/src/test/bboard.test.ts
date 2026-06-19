@@ -1,146 +1,99 @@
 // This file is part of midnightntwrk/example-bboard.
-// Copyright (C) Midnight Foundation
+// Capstone (Track A): Multi-Post Board — tests.
 // SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 import { BBoardSimulator } from "./bboard-simulator.js";
 import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
-import { State } from "../managed/bboard/contract/index.js";
 
 setNetworkId("undeployed");
 
-describe("BBoard smart contract", () => {
-  it("generates initial ledger state deterministically", () => {
+describe("Multi-post BBoard", () => {
+  it("starts empty", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    const l = sim.getLedger();
+    expect(l.posts.isEmpty()).toEqual(true);
+    expect(l.posts.size()).toEqual(0n);
+    expect(l.nextId).toEqual(0n);
+  });
+
+  it("stores a post's message and owner under id 0", () => {
     const key = randomBytes(32);
-    const simulator0 = new BBoardSimulator(key);
-    const simulator1 = new BBoardSimulator(key);
-    expect(simulator0.getLedger()).toEqual(simulator1.getLedger());
+    const sim = new BBoardSimulator(key);
+    const message = "first post";
+    sim.post(message);
+
+    const l = sim.getLedger();
+    expect(l.posts.size()).toEqual(1n);
+    expect(l.nextId).toEqual(1n);
+    expect(l.posts.member(0n)).toEqual(true);
+    expect(l.posts.lookup(0n).message).toEqual(message);
+    expect(l.posts.lookup(0n).owner).toEqual(sim.ownerKeyForId(0n));
+    // posting must not change the user's private state
+    expect(sim.getPrivateState()).toEqual({ secretKey: key });
   });
 
-  it("properly initializes ledger state and private state", () => {
-    const key = randomBytes(32);
-    const simulator = new BBoardSimulator(key);
-    const initialLedgerState = simulator.getLedger();
-    expect(initialLedgerState.sequence).toEqual(1n);
-    expect(initialLedgerState.message.is_some).toEqual(false);
-    expect(initialLedgerState.message.value).toEqual("");
-    expect(initialLedgerState.owner).toEqual(new Uint8Array(32));
-    expect(initialLedgerState.state).toEqual(State.VACANT);
-    const initialPrivateState = simulator.getPrivateState();
-    expect(initialPrivateState).toEqual({ secretKey: key });
+  it("holds posts from multiple different users at once", () => {
+    const userA = randomBytes(32);
+    const userB = randomBytes(32);
+    const sim = new BBoardSimulator(userA);
+
+    sim.post("from A"); // id 0
+    const ownerA = sim.ownerKeyForId(0n);
+
+    sim.switchUser(userB);
+    sim.post("from B"); // id 1
+    const ownerB = sim.ownerKeyForId(1n);
+
+    const l = sim.getLedger();
+    expect(l.posts.size()).toEqual(2n);
+    expect(l.posts.lookup(0n).message).toEqual("from A");
+    expect(l.posts.lookup(1n).message).toEqual("from B");
+    expect(l.posts.lookup(0n).owner).toEqual(ownerA);
+    expect(l.posts.lookup(1n).owner).toEqual(ownerB);
+    // two different users produce two different owner commitments
+    expect(ownerA).not.toEqual(ownerB);
   });
 
-  it("lets you set a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const message =
-      "Szeth-son-son-Vallano, Truthless of Shinovar, wore white on the day he was to kill a king";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(1n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+  it("lets the owner take down their own post", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.post("temporary"); // id 0
+    expect(sim.getLedger().posts.member(0n)).toEqual(true);
+
+    sim.takeDown(0n);
+
+    const l = sim.getLedger();
+    expect(l.posts.member(0n)).toEqual(false);
+    expect(l.posts.size()).toEqual(0n);
+    expect(l.nextId).toEqual(1n); // ids are never reused
   });
 
-  it("lets you take down a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const initialPublicKey = simulator.publicKey();
-    const message =
-      "Prince Raoden of Arelon awoke early that morning, completely unaware that he had been damned for all eternity.";
-    simulator.post(message);
-    simulator.takeDown();
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(false);
-    expect(ledgerState.message.value).toEqual("");
-    // Technically the circuit doesn't clear the previous owner
-    expect(ledgerState.owner).toEqual(initialPublicKey);
-    expect(ledgerState.state).toEqual(State.VACANT);
-  });
-
-  it("lets you post another message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    simulator.post("Life before Death.");
-    simulator.takeDown();
-    const message = "Strength before Weakness.";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
-  });
-
-  it("lets a different user post a message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Remember, the past need not become our future as well.");
-    simulator.takeDown();
-    simulator.switchUser(randomBytes(32));
-    const message = "Joy was more than just an absence of discomfort.";
-    simulator.post(message);
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
-  });
-
-  it("doesn't let the same user post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "My name is Stephen Leeds, and I am perfectly sane. My hallucinations, however, are all quite mad.",
+  it("won't let a different user take down your post", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    sim.post("mine"); // id 0
+    sim.switchUser(randomBytes(32));
+    expect(() => sim.takeDown(0n)).toThrow(
+      "failed assert: Attempted to take down a post, but not its owner",
     );
-    expect(() =>
-      simulator.post(
-        "You should know by now that I've already had greatness. I traded it for mediocrity and some measure of sanity.",
-      ),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
   });
 
-  it("doesn't let different users post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Ash fell from the sky");
-    simulator.switchUser(randomBytes(32));
-    expect(() =>
-      simulator.post("I am, unfortunately, the hero of ages."),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
-  });
-
-  it("doesn't let users take down someone elses posts", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "Sometimes a hypocrite is nothing more than a man in the process of changing.",
+  it("won't let you take down a post that doesn't exist", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    expect(() => sim.takeDown(99n)).toThrow(
+      "failed assert: Attempted to take down a post that does not exist",
     );
-    simulator.switchUser(randomBytes(32));
-    expect(() => simulator.takeDown()).toThrow(
-      "failed assert: Attempted to take down post, but not the current owner",
+  });
+
+  it("enforces the maximum number of posts", () => {
+    const sim = new BBoardSimulator(randomBytes(32));
+    // maxPosts() returns 5
+    for (let i = 0; i < 5; i++) {
+      sim.post(`post ${i}`);
+    }
+    expect(sim.getLedger().posts.size()).toEqual(5n);
+    expect(() => sim.post("one too many")).toThrow(
+      "failed assert: Attempted to post to a full board",
     );
   });
 });

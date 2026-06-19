@@ -47,7 +47,7 @@ export interface DeployedBBoardAPI {
   readonly state$: Observable<BBoardDerivedState>;
 
   post: (message: string) => Promise<void>;
-  takeDown: () => Promise<void>;
+  takeDown: (id: bigint) => Promise<void>;
 }
 
 /**
@@ -83,13 +83,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
           map((contractState) => BBoard.ledger(contractState.data)),
           tap((ledgerState) =>
             logger?.trace({
-              ledgerStateChanged: {
-                ledgerState: {
-                  ...ledgerState,
-                  state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
-                  owner: toHex(ledgerState.owner),
-                },
-              },
+              ledgerStateChanged: { postCount: ledgerState.posts.size() },
             }),
           ),
         ),
@@ -101,17 +95,19 @@ export class BBoardAPI implements DeployedBBoardAPI {
       ],
       // ...and combine them to produce the required derived state.
       (ledgerState, privateState) => {
-        const hashedSecretKey = BBoard.pureCircuits.publicKey(
-          privateState.secretKey,
-          convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
-        );
+        const posts = [...ledgerState.posts].map(([id, post]) => {
+          const ownerForId = BBoard.pureCircuits.publicKey(
+            privateState.secretKey,
+            convertFieldToBytes(32, id, 'api/src/index.ts'),
+          );
+          return {
+            id,
+            message: post.message,
+            isOwner: toHex(post.owner) === toHex(ownerForId),
+          };
+        });
 
-        return {
-          state: ledgerState.state,
-          message: ledgerState.message.value,
-          sequence: ledgerState.sequence,
-          isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
-        };
+        return { posts };
       },
     );
   }
@@ -157,10 +153,10 @@ export class BBoardAPI implements DeployedBBoardAPI {
    * or if the currently posted message isn't owned by the owner computed from the current private
    * state.
    */
-  async takeDown(): Promise<void> {
-    this.logger?.info('takingDownMessage');
+  async takeDown(id: bigint): Promise<void> {
+    this.logger?.info(`takingDownMessage: ${id}`);
 
-    const txData = await this.deployedContract.callTx.takeDown();
+    const txData = await this.deployedContract.callTx.takeDown(id);
 
     this.logger?.trace({
       transactionAdded: {

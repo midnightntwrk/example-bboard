@@ -21,7 +21,7 @@
 
 import { type MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import { type FoundContract } from '@midnight-ntwrk/midnight-js-contracts';
-import type { State, BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index';
+import type { BBoardPrivateState, Contract, Witnesses } from '../../contract/src/index';
 
 export const bboardPrivateStateKey = 'bboardPrivateState';
 export type PrivateStateId = typeof bboardPrivateStateKey;
@@ -80,20 +80,22 @@ export type DeployedBBoardContract = FoundContract<BBoardContract>;
 /**
  * A type that represents the derived combination of public (or ledger), and private state.
  */
-export type BBoardDerivedState = {
-  readonly state: State;
-  readonly sequence: bigint;
-  readonly message: string | undefined;
-
-  /**
-   * A readonly flag that determines if the current message was posted by the current user.
-   *
-   * @remarks
-   * The `owner` property of the public (or ledger) state is the public key of the message owner, while
-   * the `secretKey` property of {@link BBoardPrivateState} is the secret key of the current user. If
-   * `owner` corresponds to the public key derived from `secretKey`, then `isOwner` is `true`.
-   */
+/**
+ * A single post as the UI sees it: its id, message, and whether the current
+ * user is its owner.
+ */
+export type DerivedPost = {
+  readonly id: bigint;
+  readonly message: string;
   readonly isOwner: boolean;
+};
+
+/**
+ * The derived combination of public (ledger) and private state: the list of
+ * posts currently on the board, each tagged with `isOwner` for the current user.
+ */
+export type BBoardDerivedState = {
+  readonly posts: readonly DerivedPost[];
 };
 
 // TODO: for some reason I needed to include "@midnight-ntwrk/wallet-sdk-address-format": "1.0.0-rc.1", should we bump in to rc-2 ?
