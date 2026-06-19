@@ -33,7 +33,7 @@ import {
   type PrivateStateId,
 } from '../../api/src/index';
 import { type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
-import { ledger, type Ledger, State } from '../../contract/src/managed/bboard/contract/index.js';
+import { ledger, type Ledger } from '../../contract/src/managed/bboard/contract/index.js';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
@@ -125,12 +125,10 @@ const displayLedgerState = async (
   if (ledgerState === null) {
     logger.info(`There is no bulletin board contract deployed at ${contractAddress}`);
   } else {
-    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
-    const latestMessage = !ledgerState.message.is_some ? 'none' : ledgerState.message.value;
-    logger.info(`Current state is: '${boardState}'`);
-    logger.info(`Current message is: '${latestMessage}'`);
-    logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${toHex(ledgerState.owner)}'`);
+    logger.info(`There are ${ledgerState.posts.size()} post(s) on the board:`);
+    for (const [id, post] of ledgerState.posts) {
+      logger.info(`  [${id}] '${post.message}' (owner hash: ${toHex(post.owner)})`);
+    }
   }
 };
 
@@ -154,16 +152,16 @@ const displayPrivateState = async (providers: BBoardProviders, logger: Logger): 
  * determine if the current user is the owner of the current message.
  */
 
-const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger: Logger) => {
-  if (ledgerState === undefined) {
+const displayDerivedState = (derivedState: BBoardDerivedState | undefined, logger: Logger) => {
+  if (derivedState === undefined) {
     logger.info(`No bulletin board state currently available`);
+  } else if (derivedState.posts.length === 0) {
+    logger.info(`The board is empty`);
   } else {
-    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
-    const latestMessage = ledgerState.state === State.OCCUPIED ? ledgerState.message : 'none';
-    logger.info(`Current state is: '${boardState}'`);
-    logger.info(`Current message is: '${latestMessage}'`);
-    logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
+    logger.info(`There are ${derivedState.posts.length} post(s) on the board:`);
+    for (const post of derivedState.posts) {
+      logger.info(`  [${post.id}] '${post.message}' (owner: ${post.isOwner ? 'you' : 'not you'})`);
+    }
   }
 };
 
@@ -203,9 +201,11 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
             await bboardApi.post(message);
             break;
           }
-          case '2':
-            await bboardApi.takeDown();
+          case '2': {
+            const id = await rli.question(`Which post id do you want to take down? `);
+            await bboardApi.takeDown(BigInt(id));
             break;
+          }
           case '3':
             await displayLedgerState(providers, bboardApi.deployedContract, logger);
             break;

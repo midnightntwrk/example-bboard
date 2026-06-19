@@ -1,60 +1,62 @@
-// This file is part of midnightntwrk/example-counter.
-// Copyright (C) Midnight Foundation
+// This file is part of midnightntwrk/example-bboard.
+// Capstone (Track A): Multi-Post Board.
 // SPDX-License-Identifier: Apache-2.0
-// Licensed under the Apache License, Version 2.0 (the "License");
-// You may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 pragma language_version >= 0.20;
 
 import CompactStandardLibrary;
 
-export enum State {
-  VACANT,
-  OCCUPIED
+// A single bulletin-board post: the public message plus a commitment to
+// whoever posted it. The owner is a one-way hash of the poster's secret key
+// (see `publicKey`), so it identifies the author without revealing them.
+export struct Post {
+  message: Opaque<"string">;
+  owner: Bytes<32>;
 }
 
-export ledger state: State;
+// All current posts, keyed by a unique id.
+export ledger posts: Map<Uint<64>, Post>;
 
-export ledger message: Maybe<Opaque<"string">>;
+// The id that the next post will receive. Monotonic: ids are never reused,
+// which also makes each post's owner-hash unique (replay protection).
+export ledger nextId: Counter;
 
-export ledger sequence: Counter;
-
-export ledger owner: Bytes<32>;
-
-constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
-  sequence.increment(1);
-}
-
+// The poster's secret key, supplied off-chain. Never stored on-chain.
 witness localSecretKey(): Bytes<32>;
 
+// The largest number of posts the board may hold at once.
+export pure circuit maxPosts(): Uint<64> {
+  return 5;
+}
+
+// Derive a poster's public commitment from their secret key, salted by the
+// post id so the same key yields a different commitment for every post.
+export pure circuit publicKey(sk: Bytes<32>, id: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), id, sk]);
+}
+
+// Add a new post to the board. Fails if the board is already full.
 export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
-  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
+  assert(posts.size() < maxPosts(), "Attempted to post to a full board");
+  const id = nextId;
+  const ownerKey = publicKey(localSecretKey(), nextId as Field as Bytes<32>);
+  posts.insert(id, Post {
+    message: disclose(newMessage),
+    owner: disclose(ownerKey)
+  });
+  nextId.increment(1);
 }
 
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
-  sequence.increment(1);
-  message = none<Opaque<"string">>();
-  return formerMsg;
-}
-
-export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
-  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
+// Take down a post you own. Fails if the id doesn't exist, or if your secret
+// key doesn't match the stored owner commitment for that post.
+export circuit takeDown(id: Uint<64>): Opaque<"string"> {
+  assert(posts.member(disclose(id)), "Attempted to take down a post that does not exist");
+  const existing = posts.lookup(disclose(id));
+  assert(
+    existing.owner == publicKey(localSecretKey(), disclose(id) as Field as Bytes<32>),
+    "Attempted to take down a post, but not its owner"
+  );
+  const formerMessage = existing.message;
+  posts.remove(disclose(id));
+  return formerMessage;
 }
