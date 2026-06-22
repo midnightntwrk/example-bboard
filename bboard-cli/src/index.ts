@@ -295,12 +295,7 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
 
     await walletProvider.start();
 
-    const unshieldedState = await waitForUnshieldedFunds(
-      logger,
-      walletFacade,
-      envConfiguration,
-      unshieldedToken(),
-    );
+    const unshieldedState = await waitForUnshieldedFunds(logger, walletFacade, envConfiguration, unshieldedToken());
     const nightBalance = unshieldedState.balances[unshieldedToken().raw];
     if (nightBalance === undefined) {
       logger.info('No funds received, exiting...');
