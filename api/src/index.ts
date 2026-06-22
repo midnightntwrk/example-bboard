@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
 
 import * as BBoard from '../../contract/src/managed/bboard/contract/index.js';
 
-import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import { type Logger } from 'pino';
 import {
   type BBoardDerivedState,

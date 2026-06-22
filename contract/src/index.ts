@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CompiledContract } from "@midnight-ntwrk/compact-js";
+import { CompiledContract } from "@midnight-ntwrk/midnight-js-protocol/compact-js";
 
 export * from "./managed/bboard/contract/index.js";
 export * from "./witnesses";

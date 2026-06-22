@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@
  */
 
 import { Ledger } from "./managed/bboard/contract/index.js";
-import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
+import { WitnessContext } from "@midnight-ntwrk/midnight-js-protocol/compact-runtime";
 
 /* **********************************************************************
  * The only hidden state needed by the bulletin board contract is

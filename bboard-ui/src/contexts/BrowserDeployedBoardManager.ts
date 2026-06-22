@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import {
   type BBoardProviders,
   type DeployedBBoardAPI,
 } from '../../../api/src/index';
-import { type ContractAddress, fromHex, toHex } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress, fromHex, toHex } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import {
   BehaviorSubject,
   catchError,
@@ -48,7 +48,7 @@ import {
   SignatureEnabled,
   Transaction,
   TransactionId,
-} from '@midnight-ntwrk/ledger-v8';
+} from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { BBoardPrivateState } from '@midnight-ntwrk/bboard-contract';
 import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provider';
 import { NetworkId } from '@midnight-ntwrk/midnight-js-network-id';

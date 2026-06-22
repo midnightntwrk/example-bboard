@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,12 +40,12 @@ import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client
 import { type Logger } from 'pino';
 import { type Config, StandaloneConfig } from './config.js';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
-import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-utils';
 import { TestEnvironment } from '@midnight-ntwrk/testkit-js';
 import { MidnightWalletProvider } from './midnight-wallet-provider';
 import { randomBytes } from '../../api/src/utils';
-import { unshieldedToken } from '@midnight-ntwrk/ledger-v8';
+import { unshieldedToken } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { syncWallet, waitForUnshieldedFunds } from './wallet-utils';
 import { generateDust } from './generate-dust';
 import { BBoardPrivateState } from '../../contract/src/witnesses.js';
@@ -300,7 +300,6 @@ export const run = async (config: Config, testEnv: TestEnvironment, logger: Logg
       walletFacade,
       envConfiguration,
       unshieldedToken(),
-      config.requestFaucetTokens,
     );
     const nightBalance = unshieldedState.balances[unshieldedToken().raw];
     if (nightBalance === undefined) {
