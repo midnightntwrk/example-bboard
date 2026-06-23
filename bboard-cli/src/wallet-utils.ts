@@ -1,5 +1,5 @@
 /*
- * This file is part of midnight-js.
+ * This file is part of example-bboard.
  * Copyright (C) Midnight Foundation
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import { UnshieldedTokenType } from '@midnight-ntwrk/ledger-v8';
+import { UnshieldedTokenType } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { type FacadeState, type WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
 import { type ShieldedWalletAPI, type ShieldedWalletState } from '@midnight-ntwrk/wallet-sdk-shielded';
 import { type UnshieldedWalletAPI, type UnshieldedWalletState } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';

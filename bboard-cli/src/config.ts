@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ export interface Config {
   readonly logDir: string;
   readonly zkConfigPath: string;
   getEnvironment(logger: Logger): TestEnvironment;
-  readonly requestFaucetTokens: boolean;
   readonly generateDust: boolean;
 }
 
@@ -41,7 +40,6 @@ export class StandaloneConfig implements Config {
   privateStateStoreName = 'bboard-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'standalone', `${new Date().toISOString()}.log`);
   zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
-  requestFaucetTokens = false;
   generateDust = false;
 }
 
@@ -53,7 +51,6 @@ export class PreviewRemoteConfig implements Config {
   privateStateStoreName = 'bboard-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'preview-remote', `${new Date().toISOString()}.log`);
   zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
-  requestFaucetTokens = false; // Faucet not available via API, gives 500 error
   generateDust = true;
 }
 
@@ -65,7 +62,6 @@ export class PreprodRemoteConfig implements Config {
   privateStateStoreName = 'bboard-private-state';
   logDir = path.resolve(currentDir, '..', 'logs', 'preprod-remote', `${new Date().toISOString()}.log`);
   zkConfigPath = path.resolve(currentDir, '..', '..', 'contract', 'src', 'managed', 'bboard');
-  requestFaucetTokens = false; // Faucet not available via API, gives 500 error
   generateDust = true;
 }
 
@@ -86,11 +82,11 @@ export class PreviewTestEnvironment extends RemoteTestEnvironment {
     return {
       walletNetworkId: 'preview',
       networkId: 'preview',
-      indexer: 'https://indexer.preview.midnight.network/api/v3/graphql',
-      indexerWS: 'wss://indexer.preview.midnight.network/api/v3/graphql/ws',
+      indexer: 'https://indexer.preview.midnight.network/api/v4/graphql',
+      indexerWS: 'wss://indexer.preview.midnight.network/api/v4/graphql/ws',
       node: 'https://rpc.preview.midnight.network',
       nodeWS: 'wss://rpc.preview.midnight.network',
-      faucet: 'https://faucet.preview.midnight.network/api/request-tokens',
+      faucet: 'https://midnight-tmnight-preview.nethermind.dev/',
       proofServer: this.getProofServerUrl(),
     };
   }
@@ -113,11 +109,11 @@ export class PreprodTestEnvironment extends RemoteTestEnvironment {
     return {
       walletNetworkId: 'preprod',
       networkId: 'preprod',
-      indexer: 'https://indexer.preprod.midnight.network/api/v3/graphql',
-      indexerWS: 'wss://indexer.preprod.midnight.network/api/v3/graphql/ws',
+      indexer: 'https://indexer.preprod.midnight.network/api/v4/graphql',
+      indexerWS: 'wss://indexer.preprod.midnight.network/api/v4/graphql/ws',
       node: 'https://rpc.preprod.midnight.network',
       nodeWS: 'wss://rpc.preprod.midnight.network',
-      faucet: 'https://faucet.preprod.midnight.network/api/request-tokens',
+      faucet: 'https://midnight-tmnight-preprod.nethermind.dev/',
       proofServer: this.getProofServerUrl(),
     };
   }
