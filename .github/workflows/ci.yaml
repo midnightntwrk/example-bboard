@@ -20,7 +20,7 @@ jobs:
       - name: Setup Compact Compiler
         uses: midnightntwrk/setup-compact-action@836895c8fffbbea6bd986af2b17e8941ff29d1f8
         with:
-          compact-version: '0.31.0'
+          compact-version: '0.31.1'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -34,7 +34,7 @@ jobs:
       # See https://github.com/npm/cli/issues/4828
       - name: Update NPM
         run: |
-          npm install -g npm@latest
+          npm install -g npm@12.0.2
           npm --version
 
       # We use --legacy-peer-deps because as of v3.4.1 vite-plugin-wasm doesn't play well with vite 7
