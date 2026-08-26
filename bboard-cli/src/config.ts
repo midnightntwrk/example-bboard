@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   EnvironmentConfiguration,
   getTestEnvironment,
@@ -31,7 +32,7 @@ export interface Config {
   readonly generateDust: boolean;
 }
 
-export const currentDir = path.resolve(new URL(import.meta.url).pathname, '..');
+export const currentDir = path.resolve(fileURLToPath(import.meta.url), '..');
 
 export class StandaloneConfig implements Config {
   getEnvironment(logger: Logger): TestEnvironment {
