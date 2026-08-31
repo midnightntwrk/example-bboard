@@ -29,10 +29,10 @@
     "react-router-dom": "7.18.2"
   },
   "devDependencies": {
-    "@swc/core": "^1.15.41",
+    "@swc/core": "^1.16.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
-    "@vitejs/plugin-react": "^6.0.2",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint-plugin-react": "^7.37.5",
     "vite-plugin-node-polyfills": "^0.28.0"
   }
