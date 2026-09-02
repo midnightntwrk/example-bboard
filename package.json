@@ -30,7 +30,7 @@
     "@midnight-ntwrk/midnight-js-utils": "4.1.1",
     "@midnight-ntwrk/testkit-js": "4.1.1",
     "@midnight-ntwrk/wallet-sdk": "1.2.0",
-    "axios": "^1.17.0",
+    "axios": "^1.20.0",
     "buffer": "^6.0.3",
     "fp-ts": "^2.16.11",
     "pino": "^10.3.1",
