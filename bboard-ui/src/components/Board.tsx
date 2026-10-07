@@ -17,11 +17,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import {
   Backdrop,
+  Box,
   CircularProgress,
   Card,
   CardActions,
   CardContent,
   CardHeader,
+  Chip,
   IconButton,
   Skeleton,
   Typography,
@@ -37,7 +39,6 @@ import { type BBoardDerivedState, type DeployedBBoardAPI } from '../../../api/sr
 import { useDeployedBoardContext } from '../hooks';
 import { type BoardDeployment } from '../contexts';
 import { type Observable } from 'rxjs';
-import { State } from '../../../contract/src/index';
 import { EmptyCardContent } from './Board.EmptyCardContent';
 
 /** The props required by the {@link Board} component. */
@@ -46,20 +47,38 @@ export interface BoardProps {
   boardDeployment$?: Observable<BoardDeployment>;
 }
 
+/** Labels for the 14 appointment slots: 7 days, with an AM and PM opening each day. */
+const slotLabels = [
+  'Mon AM',
+  'Mon PM',
+  'Tue AM',
+  'Tue PM',
+  'Wed AM',
+  'Wed PM',
+  'Thu AM',
+  'Thu PM',
+  'Fri AM',
+  'Fri PM',
+  'Sat AM',
+  'Sat PM',
+  'Sun AM',
+  'Sun PM',
+];
+
 /**
- * Provides the UI for a deployed bulletin board contract; allowing messages to be posted or removed
- * following the rules enforced by the underlying Compact contract.
+ * Provides the UI for a deployed appointment board contract; allowing an appointment to be booked or
+ * cancelled in any of the 14 time slots, following the rules enforced by the underlying Compact contract.
  *
  * @remarks
  * With no `boardDeployment$` observable, the component will render a UI that allows the user to create
- * or join bulletin boards. It requires a `<DeployedBoardProvider />` to be in scope in order to manage
+ * or join boards. It requires a `<DeployedBoardProvider />` to be in scope in order to manage
  * these additional boards. It does this by invoking the `resolve(...)` method on the currently in-
  * scope `DeployedBoardContext`.
  *
  * When a `boardDeployment$` observable is received, the component begins by rendering a skeletal view of
  * itself, along with a loading background. It does this until the board deployment receives a
  * `DeployedBBoardAPI` instance, upon which it will then subscribe to its `state$` observable in order
- * to start receiving the changes in the bulletin board state (i.e., when a user posts a new message).
+ * to start receiving the changes in the board state (i.e., when a user books or cancels a slot).
  */
 export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
   const boardApiProvider = useDeployedBoardContext();
@@ -68,9 +87,13 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
   const [errorMessage, setErrorMessage] = useState<string>();
   const [boardState, setBoardState] = useState<BBoardDerivedState>();
   const [messagePrompt, setMessagePrompt] = useState<string>();
+  const [selectedSlot, setSelectedSlot] = useState<number>(0);
   const [isWorking, setIsWorking] = useState(!!boardDeployment$);
 
-  // Two simple callbacks that call `resolve(...)` to either deploy or join a bulletin board
+  // The derived state of whichever slot is currently selected (undefined until state$ emits).
+  const selected = boardState?.slots.get(BigInt(selectedSlot));
+
+  // Two simple callbacks that call `resolve(...)` to either deploy or join a board
   // contract. Since the `DeployedBoardContext` will create a new board and update the UI, we
   // don't have to do anything further once we've called `resolve`.
   const onCreateBoard = useCallback(() => boardApiProvider.resolve(), [boardApiProvider]);
@@ -79,9 +102,9 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
     [boardApiProvider],
   );
 
-  // Callback to handle the posting of a message. The message text is captured in the `messagePrompt`
-  // state, and we just need to forward it to the `post` method of the `DeployedBBoardAPI` instance
-  // that we received in the `deployedBoardAPI` state.
+  // Callback to handle booking the selected slot. The message text is captured in the `messagePrompt`
+  // state, and we forward it, along with the slot number, to the `post` method of the
+  // `DeployedBBoardAPI` instance that we received in the `deployedBoardAPI` state.
   const onPostMessage = useCallback(async () => {
     if (!messagePrompt) {
       return;
@@ -90,29 +113,29 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
     try {
       if (deployedBoardAPI) {
         setIsWorking(true);
-        await deployedBoardAPI.post(messagePrompt);
+        await deployedBoardAPI.post(BigInt(selectedSlot), messagePrompt);
       }
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsWorking(false);
     }
-  }, [deployedBoardAPI, setErrorMessage, setIsWorking, messagePrompt]);
+  }, [deployedBoardAPI, setErrorMessage, setIsWorking, messagePrompt, selectedSlot]);
 
-  // Callback to handle the taking down of a message. Again, we simply invoke the `takeDown` method
-  // of the `DeployedBBoardAPI` instance.
+  // Callback to handle cancelling the selected slot. Again, we simply invoke the `takeDown` method
+  // of the `DeployedBBoardAPI` instance, passing the slot number.
   const onDeleteMessage = useCallback(async () => {
     try {
       if (deployedBoardAPI) {
         setIsWorking(true);
-        await deployedBoardAPI.takeDown();
+        await deployedBoardAPI.takeDown(BigInt(selectedSlot));
       }
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsWorking(false);
     }
-  }, [deployedBoardAPI, setErrorMessage, setIsWorking]);
+  }, [deployedBoardAPI, setErrorMessage, setIsWorking, selectedSlot]);
 
   const onCopyContractAddress = useCallback(async () => {
     if (deployedBoardAPI) {
@@ -163,7 +186,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
   }, [boardDeployment, setIsWorking, setErrorMessage, setDeployedBoardAPI]);
 
   return (
-    <Card sx={{ position: 'relative', width: 275, height: 300, minWidth: 275, minHeight: 300 }} color="primary">
+    <Card sx={{ position: 'relative', width: 340, minWidth: 340, minHeight: 420 }} color="primary">
       {!boardDeployment$ && (
         <EmptyCardContent onCreateBoardCallback={onCreateBoard} onJoinBoardCallback={onJoinBoard} />
       )}
@@ -187,8 +210,8 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
           </Backdrop>
           <CardHeader
             avatar={
-              boardState ? (
-                boardState.state === State.VACANT || (boardState.state === State.OCCUPIED && boardState.isOwner) ? (
+              selected ? (
+                !selected.state || selected.isOwner ? (
                   <LockOpenIcon data-testid="post-unlocked-icon" />
                 ) : (
                   <LockIcon data-testid="post-locked-icon" />
@@ -211,50 +234,66 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
           />
           <CardContent>
             {boardState ? (
-              boardState.state === State.OCCUPIED ? (
-                <Typography data-testid="board-posted-message" minHeight={160} color="primary">
-                  {boardState.message}
-                </Typography>
-              ) : (
-                <TextField
-                  id="message-prompt"
-                  data-testid="board-message-prompt"
-                  variant="outlined"
-                  focused
-                  fullWidth
-                  multiline
-                  minRows={6}
-                  maxRows={6}
-                  placeholder="Message to post"
-                  size="small"
-                  color="primary"
-                  inputProps={{ style: { color: 'black' } }}
-                  onChange={(e) => {
-                    setMessagePrompt(e.target.value);
-                  }}
-                />
-              )
+              <React.Fragment>
+                {/* One chip per time slot: filled when booked, outlined when open, highlighted when selected. */}
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, marginBottom: 2 }} data-testid="board-slots">
+                  {slotLabels.map((label, index) => {
+                    const slot = boardState.slots.get(BigInt(index));
+                    return (
+                      <Chip
+                        key={label}
+                        label={label}
+                        size="small"
+                        color={index === selectedSlot ? 'secondary' : 'primary'}
+                        variant={slot?.state ? 'filled' : 'outlined'}
+                        onClick={() => setSelectedSlot(index)}
+                      />
+                    );
+                  })}
+                </Box>
+                {selected?.state ? (
+                  <Typography data-testid="board-posted-message" minHeight={120} color="primary">
+                    {slotLabels[selectedSlot]}: {selected.message}
+                  </Typography>
+                ) : (
+                  <TextField
+                    id="message-prompt"
+                    data-testid="board-message-prompt"
+                    variant="outlined"
+                    focused
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    maxRows={4}
+                    placeholder={`Appointment details for ${slotLabels[selectedSlot]}`}
+                    size="small"
+                    color="primary"
+                    inputProps={{ style: { color: 'black' } }}
+                    onChange={(e) => {
+                      setMessagePrompt(e.target.value);
+                    }}
+                  />
+                )}
+              </React.Fragment>
             ) : (
-              <Skeleton variant="rectangular" width={245} height={160} />
+              <Skeleton variant="rectangular" width={300} height={160} />
             )}
           </CardContent>
           <CardActions>
             {deployedBoardAPI ? (
               <React.Fragment>
                 <IconButton
-                  title="Post message"
+                  title="Book appointment"
                   data-testid="board-post-message-btn"
-                  disabled={boardState?.state === State.OCCUPIED || !messagePrompt?.length}
+                  disabled={!!selected?.state || !messagePrompt?.length}
                   onClick={onPostMessage}
                 >
                   <WriteIcon />
                 </IconButton>
                 <IconButton
-                  title="Take down message"
+                  title="Cancel appointment"
                   data-testid="board-take-down-message-btn"
-                  disabled={
-                    boardState?.state === State.VACANT || (boardState?.state === State.OCCUPIED && !boardState.isOwner)
-                  }
+                  disabled={!selected?.state || !selected.isOwner}
                   onClick={onDeleteMessage}
                 >
                   <DeleteIcon />
@@ -278,3 +317,4 @@ const toShortFormatContractAddress = (contractAddress: ContractAddress | undefin
       0x{contractAddress?.replace(/^[A-Fa-f0-9]{6}([A-Fa-f0-9]{8}).*([A-Fa-f0-9]{8})$/g, '$1...$2')}
     </span>
   ) : undefined;
+  
