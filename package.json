@@ -38,14 +38,14 @@
     "rxjs": "^7.8.2",
     "semver": "^7.8.4",
     "testcontainers": "^12.0.1",
-    "ws": "^8.21.1"
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/babel__core": "^7.20.5",
     "@types/semver": "^7.7.1",
-    "@types/ws": "^8.18.1",
+    "@types/ws": "^8.18.2",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
     "eslint": "^9.39.2",
