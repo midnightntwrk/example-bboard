@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import React, { useState } from 'react';
-import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import { CardActions, CardContent, IconButton, Tooltip, Typography } from '@mui/material';
 import BoardAddIcon from '@mui/icons-material/PostAddOutlined';
 import CreateBoardIcon from '@mui/icons-material/AddCircleOutlined';

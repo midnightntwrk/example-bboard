@@ -14,14 +14,11 @@
 // limitations under the License.
 
 import { BBoardSimulator } from "./bboard-simulator.js";
-import {
-  NetworkId,
-  setNetworkId,
-} from "@midnight-ntwrk/midnight-js-network-id";
+import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
 
-setNetworkId("undeployed" as NetworkId);
+setNetworkId("undeployed");
 
 describe("BBoard multi-slot appointment contract", () => {
   it("generates initial ledger state deterministically", () => {

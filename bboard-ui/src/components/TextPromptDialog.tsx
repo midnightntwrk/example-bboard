@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,7 +52,7 @@ export const TextPromptDialog: React.FC<Readonly<TextPromptDialogProps>> = ({ pr
           size="small"
           color="primary"
           autoComplete="off"
-          inputProps={{ style: { color: 'black' } }}
+          slotProps={{ htmlInput: { style: { color: 'black' } } }}
           onChange={(e) => {
             setText(e.target.value);
           }}

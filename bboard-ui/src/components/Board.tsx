@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of midnightntwrk/example-bboard.
 // Copyright (C) Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import {
   Backdrop,
   Box,
@@ -252,7 +252,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                   })}
                 </Box>
                 {selected?.state ? (
-                  <Typography data-testid="board-posted-message" minHeight={120} color="primary">
+                  <Typography data-testid="board-posted-message" sx={{ minHeight: 120 }} color="primary">
                     {slotLabels[selectedSlot]}: {selected.message}
                   </Typography>
                 ) : (
@@ -268,7 +268,7 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                     placeholder={`Appointment details for ${slotLabels[selectedSlot]}`}
                     size="small"
                     color="primary"
-                    inputProps={{ style: { color: 'black' } }}
+                    slotProps={{ htmlInput: { style: { color: 'black' } } }}
                     onChange={(e) => {
                       setMessagePrompt(e.target.value);
                     }}
@@ -317,4 +317,3 @@ const toShortFormatContractAddress = (contractAddress: ContractAddress | undefin
       0x{contractAddress?.replace(/^[A-Fa-f0-9]{6}([A-Fa-f0-9]{8}).*([A-Fa-f0-9]{8})$/g, '$1...$2')}
     </span>
   ) : undefined;
-  

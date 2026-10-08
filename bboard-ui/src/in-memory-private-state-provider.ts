@@ -1,5 +1,5 @@
 /*
- * This file is part of midnight-js.
+ * This file is part of example-bboard.
  * Copyright (C) Midnight Foundation
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import type { ContractAddress, SigningKey } from '@midnight-ntwrk/compact-runtime';
+import type { ContractAddress, SigningKey } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import {
   type ExportPrivateStatesOptions,
   type ExportSigningKeysOptions,

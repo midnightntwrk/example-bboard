@@ -62,7 +62,7 @@ After installing, set up the Midnight wallet:
 2. Set **Network** to **Preprod**
 3. Set **Proof server** to **Local (http://localhost:6300)** — this must point to your local proof server started via Docker
 4. Click **Enter Wallet**
-5. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://faucet.preprod.midnight.network/)
+5. Fund your wallet with tNIGHT tokens from the [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/)
 6. Go to **Tokens** in the wallet, click **Generate tDUST**, and confirm the transaction — tDUST tokens are required to pay transaction fees on preprod
 
 ## Setup Instructions
@@ -77,7 +77,7 @@ This repository uses npm workspaces. Run installation once from the repository r
 
 ### Compile the Smart Contract
 
-The Compact compiler (`compactc 0.30.0`) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
+The Compact compiler (`compactc 0.31.0`) generates TypeScript bindings and zero-knowledge circuits from the smart contract source code:
 
 ```bash
 cd contract
@@ -162,7 +162,7 @@ Using unshielded address: mn_addr_preprod1hdvtst70zfgd8wvh7l8ppp7mcrxnjn56wc5hlx
 Before deploying contracts, you need testnet tokens.
 
 1. Copy your wallet address from the output above
-2. Visit the [faucet](https://faucet.preprod.midnight.network/)
+2. Visit the [faucet](https://midnight-tmnight-preprod.nethermind.dev/)
 3. Paste your address and request funds
 4. Wait for the CLI to detect the funds (takes 2-3 minutes)
 
@@ -242,7 +242,7 @@ The UI will be available at:
 
 ## Useful Links
 
-- Get Testnet tNIGHT on [Preprod Faucet](https://faucet.preprod.midnight.network/) or [Preview Faucet](https://faucet.preview.midnight.network/)
+- Get Testnet tNIGHT on [Preprod Faucet](https://midnight-tmnight-preprod.nethermind.dev/) or [Preview Faucet](https://midnight-tmnight-preview.nethermind.dev/)
 - [Midnight Documentation](https://docs.midnight.network/examples/dapps/bboard) - Complete developer guide
 - [Compatibility Matrix](https://docs.midnight.network/relnotes/support-matrix) - Current supported Midnight component versions
 - [Compact Language Guide](https://docs.midnight.network/compact/writing) - Smart contract language reference
