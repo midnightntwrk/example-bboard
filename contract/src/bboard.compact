@@ -22,39 +22,64 @@ export enum State {
   OCCUPIED
 }
 
-export ledger state: State;
+export struct Slot {
+  state: Boolean;
+  message: Maybe<Opaque<"string">>;
+  sequence: Uint<64>;
+  owner: Bytes<32>;
+}
 
-export ledger message: Maybe<Opaque<"string">>;
-
-export ledger sequence: Counter;
-
-export ledger owner: Bytes<32>;
+export ledger slots: Map<Uint<64>, Slot>;
 
 constructor() {
-  state = State.VACANT;
-  message = none<Opaque<"string">>();
-  sequence.increment(1);
+  slots.insert(0, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(1, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(2, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(3, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(4, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(5, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(6, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(7, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(8, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(9, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(10, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(11, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(12, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
+  slots.insert(13, Slot { state: false, message: none<Opaque<"string">>(), sequence: 0, owner: pad(32, "0") });
 }
 
 witness localSecretKey(): Bytes<32>;
 
-export circuit post(newMessage: Opaque<"string">): [] {
-  assert(state == State.VACANT, "Attempted to post to an occupied board");
-  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
-  message = disclose(some<Opaque<"string">>(newMessage));
-  state = State.OCCUPIED;
+export circuit post(slotIndex: Uint<64>, newMessage: Opaque<"string">): [] {
+  const dSlotIndex = disclose(slotIndex);
+  const dNewMessage = disclose(newMessage);
+  assert(slots.member(dSlotIndex), "Time slot does not exist");
+  const slot = slots.lookup(dSlotIndex);
+  assert(slot.state == false, "Time slot is already booked");
+  slots.insert(dSlotIndex, Slot {
+    state: true,
+    message: some<Opaque<"string">>(dNewMessage),
+    sequence: slot.sequence,
+    owner: disclose(publicKey(localSecretKey(), slot.sequence as Field as Bytes<32>))
+  });
 }
 
-export circuit takeDown(): Opaque<"string"> {
-  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
-  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
-  const formerMsg = message.value;
-  state = State.VACANT;
-  sequence.increment(1);
-  message = none<Opaque<"string">>();
+export circuit takeDown(slotIndex: Uint<64>): Opaque<"string"> {
+  const dSlotIndex = disclose(slotIndex);
+  assert(slots.member(dSlotIndex), "Time slot does not exist");
+  const slot = slots.lookup(dSlotIndex);
+  assert(slot.state == true, "Time slot is already vacant");
+  assert(slot.owner == publicKey(localSecretKey(), slot.sequence as Field as Bytes<32>), "You are not the owner of this appointment");
+  const formerMsg = slot.message.value;
+  slots.insert(dSlotIndex, Slot {
+    state: false,
+    message: none<Opaque<"string">>(),
+    sequence: (slot.sequence + 1) as Uint<64>,
+    owner: slot.owner
+  });
   return formerMsg;
 }
 
-export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
+export pure circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
   return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
 }

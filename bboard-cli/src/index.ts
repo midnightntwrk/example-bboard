@@ -82,8 +82,8 @@ export const getBBoardLedgerState = async (
 
 const DEPLOY_OR_JOIN_QUESTION = `
 You can do one of the following:
-  1. Deploy a new bulletin board contract
-  2. Join an existing bulletin board contract
+  1. Create a new VaultBeauty Appointment Scheduling System
+  2. Join an existing VaultBeauty Appointment Scheduling System
   3. Exit
 Which would you like to do? `;
 
@@ -95,20 +95,41 @@ const deployOrJoin = async (providers: BBoardProviders, rli: Interface, logger: 
     switch (choice) {
       case '1':
         api = await BBoardAPI.deploy(providers, logger);
-        logger.info(`Deployed contract at address: ${api.deployedContractAddress}`);
+        logger.info(`VaultBeauty Appointment Scheduling System created at address: ${api.deployedContractAddress}. Please store this address in a safe place.`);
         return api;
       case '2':
-        api = await BBoardAPI.join(providers, await rli.question('What is the contract address (in hex)? '), logger);
-        logger.info(`Joined contract at address: ${api.deployedContractAddress}`);
+        api = await BBoardAPI.join(providers, await rli.question('Please enter the VaultBeauty Appointment Scheduling System address: '), logger);
+        logger.info(`Joined VaultBeauty Appointment Scheduling System at address: ${api.deployedContractAddress}`);
         return api;
       case '3':
-        logger.info('Exiting...');
+        logger.info('Exiting VaultBeauty Appointment Scheduling System...');
         return null;
       default:
         logger.error(`Invalid choice: ${choice}`);
     }
   }
 };
+
+/* **********************************************************************
+ * slotLabels: maps each slot index to a human-readable day and time label
+ * for the appointment schedule.
+ */
+const slotLabels = [
+  'Monday AM',
+  'Monday PM',
+  'Tuesday AM',
+  'Tuesday PM',
+  'Wednesday AM',
+  'Wednesday PM',
+  'Thursday AM',
+  'Thursday PM',
+  'Friday AM',
+  'Friday PM',
+  'Saturday AM',
+  'Saturday PM',
+  'Sunday AM',
+  'Sunday PM',
+];
 
 /* **********************************************************************
  * displayLedgerState: shows the values of each of the fields declared
@@ -123,17 +144,24 @@ const displayLedgerState = async (
   const contractAddress = deployedBBoardContract.deployTxData.public.contractAddress;
   const ledgerState = await getBBoardLedgerState(providers, contractAddress);
   if (ledgerState === null) {
-    logger.info(`There is no bulletin board contract deployed at ${contractAddress}`);
+    logger.info(`There is no appointment schedule deployed at ${contractAddress}`);
   } else {
-    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
-    const latestMessage = !ledgerState.message.is_some ? 'none' : ledgerState.message.value;
-    logger.info(`Current state is: '${boardState}'`);
-    logger.info(`Current message is: '${latestMessage}'`);
-    logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${toHex(ledgerState.owner)}'`);
+    logger.info('--- Current Appointment Schedule ---');
+    for (let i = 0; i < 14; i++) {
+      const slot = ledgerState.slots.lookup(BigInt(i));
+      const label = slotLabels[i];
+      const slotNumber = i + 1;
+      if (slot === undefined) {
+        logger.info(`Slot ${slotNumber} (${label}): No data`);
+      } else {
+        const slotState = slot.state ? 'OCCUPIED' : 'VACANT';
+        const message = slot.message.is_some ? slot.message.value : 'none';
+        logger.info(`Slot ${slotNumber} (${label}): ${slotState} - ${message}`);
+      }
+    }
+    logger.info('------------------------------------');
   }
 };
-
 /* **********************************************************************
  * displayPrivateState: shows the hex-formatted value of the secret key.
  */
@@ -141,30 +169,46 @@ const displayLedgerState = async (
 const displayPrivateState = async (providers: BBoardProviders, logger: Logger): Promise<void> => {
   const privateState = await providers.privateStateProvider.get(bboardPrivateStateKey);
   if (privateState === null) {
-    logger.info(`There is no existing bulletin board private state`);
+    logger.info(`New User Detected - You have not used the VaultBeauty Appointment Scheduling System before. You will need to create a Secure Secret Key.`);
   } else {
-    logger.info(`Current secret key is: ${toHex(privateState.secretKey)}`);
+    logger.info(`Welcome to the VaultBeauty Appointment Scheduling System. Please store your Secure Secret Key in a safe place: ${toHex(privateState.secretKey)}`);
   }
 };
-
 /* **********************************************************************
  * displayDerivedState: shows the values of derived state which is made
- * by combining the ledger state with private state. In this example, the
- * derived state compares the owner's key with the private secret key to
- * determine if the current user is the owner of the current message.
+ * by combining the ledger state with private state. For each of the 14
+ * appointment slots, it displays the slot number, day label, state,
+ * message, and whether the current user is the owner of that slot.
  */
 
 const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger: Logger) => {
   if (ledgerState === undefined) {
-    logger.info(`No bulletin board state currently available`);
+    logger.info(`VaultBeauty Appointment Scheduling System is loading, please wait.`);
   } else {
-    const boardState = ledgerState.state === State.OCCUPIED ? 'occupied' : 'vacant';
-    const latestMessage = ledgerState.state === State.OCCUPIED ? ledgerState.message : 'none';
-    logger.info(`Current state is: '${boardState}'`);
-    logger.info(`Current message is: '${latestMessage}'`);
-    logger.info(`Current sequence is: ${ledgerState.sequence}`);
-    logger.info(`Current owner is: '${ledgerState.isOwner ? 'you' : 'not you'}'`);
+    logger.info('--- Your Appointment Schedule ---');
+    for (let i = 0; i < 14; i++) {
+      const slot = ledgerState.slots.get(BigInt(i));
+      const label = slotLabels[i];
+      const slotNumber = i + 1;
+      if (slot === undefined) {
+        logger.info(`Slot ${slotNumber} (${label}): No data`);
+      } else {
+        const slotState = slot.state ? 'OCCUPIED' : 'VACANT';
+        const message = slot.message ?? 'none';
+        const ownership = slot.isOwner ? 'you' : 'not you';
+        logger.info(`Slot ${slotNumber} (${label}): ${slotState} - ${message} - Owner: ${ownership}`);
+      }
+    }
+    logger.info('---------------------------------');
   }
+};
+
+const validateSlotSelection = (input: string): number | undefined => {
+  const slotNumber = Number(input.trim());
+  if (!Number.isInteger(slotNumber) || slotNumber < 1 || slotNumber > 14) {
+    return undefined;
+  }
+  return slotNumber - 1;
 };
 
 /* **********************************************************************
@@ -175,11 +219,11 @@ const displayDerivedState = (ledgerState: BBoardDerivedState | undefined, logger
 
 const MAIN_LOOP_QUESTION = `
 You can do one of the following:
-  1. Post a message
-  2. Take down your message
-  3. Display the current ledger state (known by everyone)
-  4. Display the current private state (known only to this DApp instance)
-  5. Display the current derived state (known only to this DApp instance)
+  1. Make an appointment 
+  2. Cancel an appointment
+  3. Display the entire appointment schedule
+  4. Display your secure private key (known only to you)
+  5. Display your personal appointment schedule
   6. Exit
 Which would you like to do? `;
 
@@ -198,14 +242,39 @@ const mainLoop = async (providers: BBoardProviders, rli: Interface, logger: Logg
       const choice = await rli.question(MAIN_LOOP_QUESTION);
       try {
         switch (choice) {
-          case '1': {
-            const message = await rli.question(`What message do you want to post? `);
-            await bboardApi.post(message);
+         case '1': {
+            logger.info('--- Available Appointment Slots ---');
+            for (let i = 0; i < 14; i++) {
+              logger.info(`  ${i + 1}. ${slotLabels[i]}`);
+            }
+            logger.info('-----------------------------------');
+            const slotInput = await rli.question(`From the following, 1-14, select the day and time for your appointment: `);
+            const slotIndex = validateSlotSelection(slotInput);
+            if (slotIndex === undefined) {
+              logger.error('Invalid slot selection. Please enter a whole number from 1 to 14.');
+              break;
+            }
+            const message = await rli.question(`Please enter the appointment details: `);
+            await bboardApi.post(BigInt(slotIndex), message);
+            logger.info(`Your appointment has been successfully booked for ${slotLabels[slotIndex]}: ${message}`);
             break;
           }
-          case '2':
-            await bboardApi.takeDown();
+          case '2': {
+            logger.info('--- Appointment Slots ---');
+            for (let i = 0; i < 14; i++) {
+              logger.info(`  ${i + 1}. ${slotLabels[i]}`);
+            }
+            logger.info('------------------------');
+            const slotInput = await rli.question(`From the following, 1-14, select the day and time that needs to be canceled: `);
+            const slotIndex = validateSlotSelection(slotInput);
+            if (slotIndex === undefined) {
+              logger.error('Invalid slot selection. Please enter a whole number from 1 to 14.');
+              break;
+            }
+            await bboardApi.takeDown(BigInt(slotIndex));
+            logger.info(`Your appointment for ${slotLabels[slotIndex]} has been successfully canceled.`);
             break;
+          }
           case '3':
             await displayLedgerState(providers, bboardApi.deployedContract, logger);
             break;

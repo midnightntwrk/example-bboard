@@ -17,130 +17,179 @@ import { BBoardSimulator } from "./bboard-simulator.js";
 import { setNetworkId } from "@midnight-ntwrk/midnight-js-network-id";
 import { describe, it, expect } from "vitest";
 import { randomBytes } from "./utils.js";
-import { State } from "../managed/bboard/contract/index.js";
 
 setNetworkId("undeployed");
 
-describe("BBoard smart contract", () => {
+describe("BBoard multi-slot appointment contract", () => {
   it("generates initial ledger state deterministically", () => {
     const key = randomBytes(32);
     const simulator0 = new BBoardSimulator(key);
     const simulator1 = new BBoardSimulator(key);
-    expect(simulator0.getLedger()).toEqual(simulator1.getLedger());
+    for (let i = 0n; i < 14n; i++) {
+      expect(simulator0.getLedger().slots.lookup(i)).toEqual(
+        simulator1.getLedger().slots.lookup(i),
+      );
+    }
   });
 
-  it("properly initializes ledger state and private state", () => {
+  it("starts with 14 vacant slots", () => {
     const key = randomBytes(32);
     const simulator = new BBoardSimulator(key);
-    const initialLedgerState = simulator.getLedger();
-    expect(initialLedgerState.sequence).toEqual(1n);
-    expect(initialLedgerState.message.is_some).toEqual(false);
-    expect(initialLedgerState.message.value).toEqual("");
-    expect(initialLedgerState.owner).toEqual(new Uint8Array(32));
-    expect(initialLedgerState.state).toEqual(State.VACANT);
-    const initialPrivateState = simulator.getPrivateState();
-    expect(initialPrivateState).toEqual({ secretKey: key });
-  });
-
-  it("lets you set a message", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    const message =
-      "Szeth-son-son-Vallano, Truthless of Shinovar, wore white on the day he was to kill a king";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
     const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(1n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
+    // pad(32, "0") in the constructor fills the first byte with the character "0" (48)
+    const emptyOwner = new Uint8Array(32);
+    emptyOwner[0] = 48;
+    for (let i = 0n; i < 14n; i++) {
+      const slot = ledgerState.slots.lookup(i);
+      expect(slot.state).toEqual(false);
+      expect(slot.message.is_some).toEqual(false);
+      expect(slot.sequence).toEqual(0n);
+      expect(slot.owner).toEqual(emptyOwner);
+    }
+    expect(simulator.getPrivateState()).toEqual({ secretKey: key });
   });
 
-  it("lets you take down a message", () => {
+  // post: success case
+  it("lets you book a slot", () => {
     const simulator = new BBoardSimulator(randomBytes(32));
     const initialPrivateState = simulator.getPrivateState();
-    const initialPublicKey = simulator.publicKey();
-    const message =
-      "Prince Raoden of Arelon awoke early that morning, completely unaware that he had been damned for all eternity.";
-    simulator.post(message);
-    simulator.takeDown();
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(false);
-    expect(ledgerState.message.value).toEqual("");
-    // Technically the circuit doesn't clear the previous owner
-    expect(ledgerState.owner).toEqual(initialPublicKey);
-    expect(ledgerState.state).toEqual(State.VACANT);
+    simulator.post(3n, "Haircut and color, 10am");
+    // the private state shouldn't change
+    expect(simulator.getPrivateState()).toEqual(initialPrivateState);
+    const slot = simulator.getLedger().slots.lookup(3n);
+    expect(slot.state).toEqual(true);
+    expect(slot.message.is_some).toEqual(true);
+    expect(slot.message.value).toEqual("Haircut and color, 10am");
+    expect(slot.sequence).toEqual(0n);
+    expect(slot.owner).toEqual(simulator.publicKey(3n));
   });
 
-  it("lets you post another message after taking down the first", () => {
+  // post: failure case (slot already booked)
+  it("doesn't let the same user book a slot twice", () => {
     const simulator = new BBoardSimulator(randomBytes(32));
-    const initialPrivateState = simulator.getPrivateState();
-    simulator.post("Life before Death.");
-    simulator.takeDown();
-    const message = "Strength before Weakness.";
-    simulator.post(message);
-    // the private ledger state shouldn't change
-    expect(initialPrivateState).toEqual(simulator.getPrivateState());
-    // And all the correct things should have been updated in the public ledger state
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
-  });
-
-  it("lets a different user post a message after taking down the first", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Remember, the past need not become our future as well.");
-    simulator.takeDown();
-    simulator.switchUser(randomBytes(32));
-    const message = "Joy was more than just an absence of discomfort.";
-    simulator.post(message);
-    const ledgerState = simulator.getLedger();
-    expect(ledgerState.sequence).toEqual(2n);
-    expect(ledgerState.message.is_some).toEqual(true);
-    expect(ledgerState.message.value).toEqual(message);
-    expect(ledgerState.owner).toEqual(simulator.publicKey());
-    expect(ledgerState.state).toEqual(State.OCCUPIED);
-  });
-
-  it("doesn't let the same user post twice", () => {
-    const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "My name is Stephen Leeds, and I am perfectly sane. My hallucinations, however, are all quite mad.",
+    simulator.post(0n, "Trim");
+    expect(() => simulator.post(0n, "Another trim")).toThrow(
+      "failed assert: Time slot is already booked",
     );
-    expect(() =>
-      simulator.post(
-        "You should know by now that I've already had greatness. I traded it for mediocrity and some measure of sanity.",
-      ),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
   });
 
-  it("doesn't let different users post twice", () => {
+  it("doesn't let a different user book an occupied slot", () => {
     const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post("Ash fell from the sky");
+    simulator.post(5n, "Blowout");
     simulator.switchUser(randomBytes(32));
-    expect(() =>
-      simulator.post("I am, unfortunately, the hero of ages."),
-    ).toThrow("failed assert: Attempted to post to an occupied board");
+    expect(() => simulator.post(5n, "Updo")).toThrow(
+      "failed assert: Time slot is already booked",
+    );
   });
 
-  it("doesn't let users take down someone elses posts", () => {
+  // post: failure case (slot limit)
+  it("rejects a slot number that doesn't exist", () => {
     const simulator = new BBoardSimulator(randomBytes(32));
-    simulator.post(
-      "Sometimes a hypocrite is nothing more than a man in the process of changing.",
+    expect(() => simulator.post(14n, "Too far")).toThrow(
+      "failed assert: Time slot does not exist",
     );
+    expect(() => simulator.post(64n, "Way too far")).toThrow(
+      "failed assert: Time slot does not exist",
+    );
+  });
+
+  // multiple users, multiple slots
+  it("lets different users book different slots at the same time", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post(0n, "Monday AM");
+    const firstKey = simulator.publicKey(0n);
+
     simulator.switchUser(randomBytes(32));
-    expect(() => simulator.takeDown()).toThrow(
-      "failed assert: Attempted to take down post, but not the current owner",
+    simulator.post(1n, "Monday PM");
+    const secondKey = simulator.publicKey(1n);
+
+    const ledgerState = simulator.getLedger();
+    expect(ledgerState.slots.lookup(0n).message.value).toEqual("Monday AM");
+    expect(ledgerState.slots.lookup(1n).message.value).toEqual("Monday PM");
+    expect(ledgerState.slots.lookup(0n).owner).toEqual(firstKey);
+    expect(ledgerState.slots.lookup(1n).owner).toEqual(secondKey);
+    expect(firstKey).not.toEqual(secondKey);
+  });
+
+  // takeDown: success case
+  it("lets the owner cancel their slot", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    const initialPrivateState = simulator.getPrivateState();
+    simulator.post(2n, "Manicure");
+    const ownerKey = simulator.publicKey(2n);
+    simulator.takeDown(2n);
+    expect(simulator.getPrivateState()).toEqual(initialPrivateState);
+    const slot = simulator.getLedger().slots.lookup(2n);
+    expect(slot.state).toEqual(false);
+    expect(slot.message.is_some).toEqual(false);
+    expect(slot.sequence).toEqual(1n);
+    // The circuit doesn't clear the previous owner
+    expect(slot.owner).toEqual(ownerKey);
+  });
+
+  it("only cancels the chosen slot and leaves the others alone", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post(0n, "Slot zero");
+    simulator.post(1n, "Slot one");
+    simulator.takeDown(0n);
+    const ledgerState = simulator.getLedger();
+    expect(ledgerState.slots.lookup(0n).state).toEqual(false);
+    expect(ledgerState.slots.lookup(1n).state).toEqual(true);
+    expect(ledgerState.slots.lookup(1n).message.value).toEqual("Slot one");
+    // Only the cancelled slot's sequence moves
+    expect(ledgerState.slots.lookup(0n).sequence).toEqual(1n);
+    expect(ledgerState.slots.lookup(1n).sequence).toEqual(0n);
+  });
+
+  // takeDown: failure cases
+  it("doesn't let users cancel someone else's slot", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post(4n, "Facial");
+    simulator.switchUser(randomBytes(32));
+    expect(() => simulator.takeDown(4n)).toThrow(
+      "failed assert: You are not the owner of this appointment",
     );
+  });
+
+  it("doesn't let you cancel a vacant slot", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    expect(() => simulator.takeDown(7n)).toThrow(
+      "failed assert: Time slot is already vacant",
+    );
+  });
+
+  it("rejects cancelling a slot number that doesn't exist", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    expect(() => simulator.takeDown(14n)).toThrow(
+      "failed assert: Time slot does not exist",
+    );
+  });
+
+  // sequence behavior on slot reuse
+  it("gives a rebooked slot a new owner key", () => {
+    const secretKey = randomBytes(32);
+    const simulator = new BBoardSimulator(secretKey);
+    simulator.post(6n, "First booking");
+    const firstKey = simulator.getLedger().slots.lookup(6n).owner;
+    simulator.takeDown(6n);
+    simulator.post(6n, "Second booking");
+    const slot = simulator.getLedger().slots.lookup(6n);
+    expect(slot.sequence).toEqual(1n);
+    expect(slot.state).toEqual(true);
+    expect(slot.message.value).toEqual("Second booking");
+    // Same person, same secret key, but the new sequence changes the key
+    expect(slot.owner).not.toEqual(firstKey);
+    expect(slot.owner).toEqual(simulator.publicKey(6n));
+  });
+
+  it("lets a different user book a slot after it was cancelled", () => {
+    const simulator = new BBoardSimulator(randomBytes(32));
+    simulator.post(9n, "Original booking");
+    simulator.takeDown(9n);
+    simulator.switchUser(randomBytes(32));
+    simulator.post(9n, "New client");
+    const slot = simulator.getLedger().slots.lookup(9n);
+    expect(slot.message.value).toEqual("New client");
+    expect(slot.owner).toEqual(simulator.publicKey(9n));
   });
 });

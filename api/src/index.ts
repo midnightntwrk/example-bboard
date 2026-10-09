@@ -25,6 +25,7 @@ import { type ContractAddress, convertFieldToBytes } from '@midnight-ntwrk/midni
 import { type Logger } from 'pino';
 import {
   type BBoardDerivedState,
+  type SlotDerivedState,
   type BBoardContract,
   type BBoardProviders,
   type DeployedBBoardContract,
@@ -46,8 +47,8 @@ export interface DeployedBBoardAPI {
   readonly deployedContractAddress: ContractAddress;
   readonly state$: Observable<BBoardDerivedState>;
 
-  post: (message: string) => Promise<void>;
-  takeDown: () => Promise<void>;
+  post: (slotIndex: bigint, message: string) => Promise<void>;
+  takeDown: (slotIndex: bigint) => Promise<void>;
 }
 
 /**
@@ -77,43 +78,46 @@ export class BBoardAPI implements DeployedBBoardAPI {
     this.deployedContractAddress = deployedContract.deployTxData.public.contractAddress;
     providers.privateStateProvider.setContractAddress(this.deployedContractAddress);
     this.state$ = combineLatest(
-      [
-        // Combine public (ledger) state with...
-        providers.publicDataProvider.contractStateObservable(this.deployedContractAddress, { type: 'latest' }).pipe(
-          map((contractState) => BBoard.ledger(contractState.data)),
-          tap((ledgerState) =>
-            logger?.trace({
-              ledgerStateChanged: {
-                ledgerState: {
-                  ...ledgerState,
-                  state: ledgerState.state === BBoard.State.OCCUPIED ? 'occupied' : 'vacant',
-                  owner: toHex(ledgerState.owner),
-                },
-              },
-            }),
-          ),
-        ),
-        // ...private state...
-        //    since the private state of the bulletin board application never changes, we can query the
-        //    private state once and always use the same value with `combineLatest`. In applications
-        //    where the private state is expected to change, we would need to make this an `Observable`.
-        from(providers.privateStateProvider.get(bboardPrivateStateKey) as Promise<BBoardPrivateState>),
-      ],
-      // ...and combine them to produce the required derived state.
-      (ledgerState, privateState) => {
-        const hashedSecretKey = BBoard.pureCircuits.publicKey(
-          privateState.secretKey,
-          convertFieldToBytes(32, ledgerState.sequence, 'api/src/index.ts'),
-        );
-
-        return {
-          state: ledgerState.state,
-          message: ledgerState.message.value,
-          sequence: ledgerState.sequence,
-          isOwner: toHex(ledgerState.owner) === toHex(hashedSecretKey),
-        };
-      },
-    );
+  [
+    // Combine public (ledger) state with...
+    providers.publicDataProvider.contractStateObservable(this.deployedContractAddress, { type: 'latest' }).pipe(
+      map((contractState) => BBoard.ledger(contractState.data)),
+      tap((ledgerState) =>
+        logger?.trace({
+          ledgerStateChanged: {
+            ledgerState: {
+              slots: [...ledgerState.slots].map(([key, slot]) => ({
+                key,
+                state: slot.state ? 'occupied' : 'vacant',
+              })),
+            },
+          },
+        }),
+      ),
+    ),
+    // ...private state...
+    //    since the private state of the bulletin board application never changes, we can query the
+    //    private state once and always use the same value with `combineLatest`.
+    from(providers.privateStateProvider.get(bboardPrivateStateKey) as Promise<BBoardPrivateState>),
+  ],
+  // ...and combine them to produce the required derived state.
+  (ledgerState, privateState) => {
+    const slots = new Map<bigint, SlotDerivedState>();
+    for (let i = 0n; i < 14n; i++) {
+      const slot = ledgerState.slots.lookup(i);
+      const hashedSecretKey = BBoard.pureCircuits.publicKey(
+        privateState.secretKey,
+        convertFieldToBytes(32, slot.sequence, 'api/src/index.ts'),
+      );
+      slots.set(i, {
+        state: slot.state,
+        message: slot.message.is_some ? slot.message.value : undefined,
+        isOwner: toHex(slot.owner) === toHex(hashedSecretKey),
+      });
+    }
+    return { slots };
+  },
+);
   }
 
   /**
@@ -135,10 +139,10 @@ export class BBoardAPI implements DeployedBBoardAPI {
    * @remarks
    * This method can fail during local circuit execution if the bulletin board is currently occupied.
    */
-  async post(message: string): Promise<void> {
-    this.logger?.info(`postingMessage: ${message}`);
+  async post(slotIndex: bigint, message: string): Promise<void> {
+    this.logger?.trace(`postingMessage to slot ${slotIndex}: ${message}`);
 
-    const txData = await this.deployedContract.callTx.post(message);
+    const txData = await this.deployedContract.callTx.post(slotIndex, message);
 
     this.logger?.trace({
       transactionAdded: {
@@ -157,10 +161,10 @@ export class BBoardAPI implements DeployedBBoardAPI {
    * or if the currently posted message isn't owned by the owner computed from the current private
    * state.
    */
-  async takeDown(): Promise<void> {
-    this.logger?.info('takingDownMessage');
+  async takeDown(slotIndex: bigint): Promise<void> {
+    this.logger?.trace(`cancelingAppointment in slot ${slotIndex}`);
 
-    const txData = await this.deployedContract.callTx.takeDown();
+    const txData = await this.deployedContract.callTx.takeDown(slotIndex);
 
     this.logger?.trace({
       transactionAdded: {
