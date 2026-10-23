@@ -57,8 +57,6 @@ export class BBoardSimulator {
 
   /***
    * Switch to a different secret key for a different user
-   *
-   * TODO: is there a nicer abstraction for testing multi-user dApps?
    */
   public switchUser(secretKey: Uint8Array) {
     this.circuitContext.currentPrivateState = {
@@ -74,26 +72,31 @@ export class BBoardSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  public post(message: string): Ledger {
+  // Book a specific slot. slotIndex picks which of the 14 slots to use.
+  public post(slotIndex: bigint, message: string): Ledger {
     // Update the current context to be the result of executing the circuit.
     this.circuitContext = this.contract.impureCircuits.post(
       this.circuitContext,
+      slotIndex,
       message,
     ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
-  public takeDown(): Ledger {
+  // Cancel a specific slot. slotIndex picks which slot to clear.
+  public takeDown(slotIndex: bigint): Ledger {
     this.circuitContext = this.contract.impureCircuits.takeDown(
       this.circuitContext,
+      slotIndex,
     ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
-  public publicKey(): Uint8Array {
+  // The owner key is derived from the secret key plus that slot's own sequence
+  public publicKey(slotIndex: bigint): Uint8Array {
     const sequence = convertFieldToBytes(
       32,
-      this.getLedger().sequence,
+      this.getLedger().slots.lookup(slotIndex).sequence,
       "bboard-simulator.ts",
     );
     return this.contract.circuits.publicKey(
