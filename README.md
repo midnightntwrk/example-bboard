@@ -1,3 +1,10 @@
+> [!WARNING]
+> **This repository is archived and no longer maintained.**
+>
+> `example-bboard` is no longer Midnight's starter example. Its replacements live in [midnight-examples](https://github.com/midnightntwrk/midnight-examples), Midnight's example monorepo, where every example compiles and runs against one pinned toolchain in CI.
+>
+> For working examples, start with the [learning path](https://github.com/midnightntwrk/midnight-examples#learning-path). This repo is read-only and will not be updated for future SDK releases.
+
 # Bulletin Board DApp
 
 This project is built on the [Midnight Network](https://midnight.network/).
