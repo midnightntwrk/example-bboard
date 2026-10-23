@@ -106,15 +106,42 @@ export class PreprodTestEnvironment extends RemoteTestEnvironment {
   }
 
   getEnvironmentConfiguration(): EnvironmentConfiguration {
+    // The Preprod indexer and node RPC are served by Blockfrost and need a project token.
+    const projectId = process.env.BLOCKFROST_PROJECT_ID?.trim();
+    if (!projectId) {
+      throw new Error('BLOCKFROST_PROJECT_ID is not set.');
+    }
+    const withBlockfrostKey = (url: string) => `${url}?project_id=${encodeURIComponent(projectId)}`;
     return {
       walletNetworkId: 'preprod',
       networkId: 'preprod',
-      indexer: 'https://indexer.preprod.midnight.network/api/v4/graphql',
-      indexerWS: 'wss://indexer.preprod.midnight.network/api/v4/graphql/ws',
-      node: 'https://rpc.preprod.midnight.network',
-      nodeWS: 'wss://rpc.preprod.midnight.network',
+      indexer: withBlockfrostKey('https://midnight-preprod.blockfrost.io/api/v0'),
+      indexerWS: withBlockfrostKey('wss://midnight-preprod.blockfrost.io/api/v0/ws'),
+      node: withBlockfrostKey('https://rpc.midnight-preprod.blockfrost.io'),
+      nodeWS: withBlockfrostKey('wss://rpc.midnight-preprod.blockfrost.io'),
       faucet: 'https://midnight-tmnight-preprod.nethermind.dev/',
       proofServer: this.getProofServerUrl(),
     };
   }
+
+  // testkit-js 4.1.1 drops the query string from its health-check URLs, so Blockfrost
+  // rejects the indexer check for lack of a token. Run the checks with the token instead.
+  healthCheck = async () => {
+    this.logger.info('Performing env health check');
+    const { node, indexer, proofServer } = this.getEnvironmentConfiguration();
+    const checks = [
+      ['node', node, '/health'],
+      ['indexer', indexer, '/ready'],
+      ['proof server', proofServer, '/health'],
+    ] as const;
+    for (const [name, baseUrl, path] of checks) {
+      const url = new URL(baseUrl);
+      url.pathname = path;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`The ${name} health check failed with HTTP ${response.status}.`);
+      }
+      this.logger.info(`Connected to ${name} ${url.origin}${url.pathname}: ${await response.text()}`);
+    }
+  };
 }
