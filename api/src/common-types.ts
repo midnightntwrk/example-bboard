@@ -80,20 +80,22 @@ export type DeployedBBoardContract = FoundContract<BBoardContract>;
 /**
  * A type that represents the derived combination of public (or ledger), and private state.
  */
-export type BBoardDerivedState = {
-  readonly state: State;
-  readonly sequence: bigint;
+/**
+ * A type that represents one appointment slot's derived combination of public and private state.
+ */
+export type SlotDerivedState = {
+  readonly state: boolean;
   readonly message: string | undefined;
-
-  /**
-   * A readonly flag that determines if the current message was posted by the current user.
-   *
-   * @remarks
-   * The `owner` property of the public (or ledger) state is the public key of the message owner, while
-   * the `secretKey` property of {@link BBoardPrivateState} is the secret key of the current user. If
-   * `owner` corresponds to the public key derived from `secretKey`, then `isOwner` is `true`.
-   */
   readonly isOwner: boolean;
 };
 
+/**
+ * A type that represents the derived combination of public (or ledger), and private state
+ * for all 14 appointment slots.
+ */
+export type BBoardDerivedState = {
+  readonly slots: Map<bigint, SlotDerivedState>;
+};
+
 // TODO: for some reason I needed to include "@midnight-ntwrk/wallet-sdk-address-format": "1.0.0-rc.1", should we bump in to rc-2 ?
+// Note: Left from original Midnight Foundation code - not modified by VaultBeauty capstone project
